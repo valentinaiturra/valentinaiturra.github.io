@@ -132,8 +132,8 @@
       font-family: Arial, Helvetica, sans-serif;
       font-size: 11px;
       font-weight: bold;
-      color: #10302e;
-      text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000, 0 0 3px #000;   /* borde oscuro para leerse sobre el satélite */
       padding: 0;
     }
     .etiqueta-estacion::before { display: none; }
@@ -145,7 +145,8 @@
       color: var(--texto-suave);
     }
 
-    @media (max-width: 860px) {
+    /* Solo en pantallas angostas (celular) el perfil pasa debajo del mapa */
+    @media (max-width: 700px) {
       .principal { grid-template-columns: 1fr; }
       #mapa { height: 420px; }
       #grafico { height: 460px; }
@@ -230,26 +231,11 @@
     // ====== MAPA ======
     const mapa = L.map("mapa");
 
-    const capaGEBCO = L.tileLayer.wms("https://wms.gebco.net/mapserv?", {
-      layers: "GEBCO_LATEST",
-      format: "image/png",
-      attribution: "Batimetría: GEBCO Compilation Group"
-    });
-    const capaOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "© colaboradores de OpenStreetMap"
-    });
-    const capaSatelite = L.tileLayer(
+    // Imagen satelital de fondo (Esri World Imagery)
+    L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       maxZoom: 18,
       attribution: "Imágenes: Esri"
-    });
-
-    capaGEBCO.addTo(mapa);
-    L.control.layers({
-      "Batimetría GEBCO": capaGEBCO,
-      "Línea de costa (OpenStreetMap)": capaOSM,
-      "Satélite (Esri)": capaSatelite
     }).addTo(mapa);
     L.control.scale({ imperial: false }).addTo(mapa);
 
@@ -323,9 +309,7 @@
       indice.campanas.forEach(c => {
         const archivo = c.archivos[id];
         if (!archivo) return;
-        const fecha = archivo.fecha.split("-").reverse().join("-");
-        const detalle = archivo.hora ? archivo.hora : archivo.nota;
-        selCampana.add(new Option(`${c.orden}. ${c.nombre} (${fecha}, ${detalle})`, c.id));
+        selCampana.add(new Option(`${c.orden}. ${c.nombre}`, c.id));
       });
       if ([...selCampana.options].some(o => o.value === campanaPrevia)) selCampana.value = campanaPrevia;
 
