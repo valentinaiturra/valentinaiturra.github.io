@@ -91,7 +91,7 @@
       if (grafico) grafico.destroy();
 
       grafico = new Chart(document.getElementById("grafico"), {
-        type: "line",
+        type: "bar",
         data: {
           labels: datos.etiquetas,
           datasets: datos.series.map((serie, i) => ({
