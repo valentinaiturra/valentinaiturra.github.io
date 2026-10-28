@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transecto CTD Puyuhuapi</title>
+  <meta name="description" content="Secciones verticales a lo largo del fiordo Puyuhuapi, proyecto Fondecyt 1262020">
+
+  <!-- SheetJS: lee los Excel directamente en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Plotly (versión "cartesian": incluye contornos): gráfico de la sección -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly-cartesian.min.js"></script>
+
+  <style>
+    /* ====== COLORES (los mismos de index.html y visor_ctd.html) ====== */
+    :root {
+      --fondo: #f6f4ef;
+      --texto: #22262b;
+      --texto-suave: #5c636b;
+      --acento: #1f5f5b;
+      --linea: #dcd8cd;
+      --blanco: #ffffff;
+      --error: #b3261e;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* Asegura que lo marcado como "hidden" quede oculto aunque tenga otro display */
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--texto);
+      background: var(--fondo);
+    }
+
+    .contenedor {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    h1 { margin: 0 0 4px; line-height: 1.2; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+    .subtitulo { color: var(--texto-suave); margin: 0 0 20px; }
+    a { color: var(--acento); }
+
+    .caja {
+      background: var(--blanco);
+      border: 1px solid var(--linea);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+    }
+    .controles > div { flex: 0 1 300px; }
+    .controles label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+
+    select {
+      width: 100%;
+      font-size: 1rem;
+      padding: 8px 10px;
+      border: 1px solid var(--linea);
+      border-radius: 6px;
+      background: var(--blanco);
+      color: var(--texto);
+    }
+    select:focus-visible {
+      outline: 3px solid #e0a526;
+      outline-offset: 2px;
+    }
+
+    #grafico { height: 600px; }
+
+    #estado, #resumen {
+      color: var(--texto-suave);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    #mensaje {
+      color: var(--error);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+
+    footer {
+      margin-top: 24px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+    }
+
+    @media (max-width: 700px) {
+      #grafico { height: 460px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <h1>Transecto a lo largo del fiordo Puyuhuapi</h1>
+    <p class="subtitulo">Sección vertical desde la boca (E01) hacia la cabeza del fiordo (E17), sin el seno Magdalena (E09, E10) ni el canal Jacaf (E13, E14).</p>
+
+    <div class="caja">
+      <div class="controles">
+        <div>
+          <label for="selCampana">Campaña</label>
+          <select id="selCampana"></select>
+        </div>
+        <div>
+          <label for="selVariable">Variable</label>
+          <select id="selVariable"></select>
+        </div>
+      </div>
+
+      <div id="grafico"></div>
+      <div id="estado"></div>
+      <div id="resumen"></div>
+      <div id="mensaje"></div>
+    </div>
+
+    <footer>
+      Para dibujar la sección, cada perfil se promedia cada 1 m de profundidad y luego se interpola linealmente entre estaciones vecinas.
+      Las líneas punteadas marcan las estaciones; la zona gris está bajo la profundidad máxima medida.
+      Los archivos originales no se modifican. Usa el ícono de cámara del gráfico para descargarlo en PNG.
+      <br><a href="visor_ctd.html">Ver perfiles por estación →</a>
+    </footer>
+  </div>
+
+  <script>
+    // ====== AJUSTES (puedes cambiarlos) ======
+    const ARCHIVO_INDICE = "datos/indice.json";
+    const COLUMNA_PROFUNDIDAD = "Depth";
+    const COLUMNAS_EXCLUIDAS = ["Time", COLUMNA_PROFUNDIDAD];   // no aparecen en el menú de variables
+
+    // Estaciones del transecto, en orden desde la boca (E01) hacia la cabeza del fiordo
+    const ESTACIONES_TRANSECTO = ["E01", "E02", "E03", "E04", "E05", "E06", "E07", "E08",
+                                  "E11", "E12", "E15", "E16", "E17"];
+
+    const PASO_VERTICAL_M = 1;          // tamaño del promedio vertical (bin) en metros
+    const COLUMNAS_HORIZONTALES = 300;  // resolución horizontal de la grilla interpolada
+    const COLOR_FONDO = "#bdbab3";      // zona bajo la profundidad máxima medida
+
+    // Nombres en español con unidades (los mismos de visor_ctd.html)
+    const NOMBRES = {
+      "Conductivity": "Conductividad [mS/cm]",
+      "Temperature": "Temperatura [°C]",
+      "Temperature (2)": "Temperatura del sensor de oxígeno [°C]",
+      "Pressure": "Presión [dbar]",
+      "Chlorophyll a": "Clorofila a [µg/L]",
+      "Dissolved O₂ concentration": "Oxígeno disuelto [µmol/L]",
+      "Dissolved O₂ saturation": "Saturación de oxígeno [%]",
+      "Sea pressure": "Presión del mar [dbar]",
+      "Depth": "Profundidad [m]",
+      "Salinity": "Salinidad [PSU]",
+      "Speed of sound": "Velocidad del sonido [m/s]",
+      "Specific conductivity": "Conductividad específica [µS/cm]",
+      "Density anomaly": "Anomalía de densidad [kg/m³]"
+    };
+    const etiqueta = nombre => NOMBRES[nombre] || nombre;
+
+    // Paletas cmocean (aproximadas con 8 colores), aptas para daltonismo
+    const CMOCEAN = {
+      thermal: ["#042333", "#2c3172", "#5b3f95", "#89508f", "#b8617d", "#e2765f", "#f8a043", "#e8fa5b"],
+      haline:  ["#2a186c", "#16409b", "#11668d", "#2f8a87", "#4dad7b", "#82cb63", "#c6e46a", "#fdef9a"],
+      dense:   ["#e6f1f1", "#b3d0e2", "#8daede", "#7d86d9", "#7a5fc0", "#723c96", "#5d2167", "#360e24"],
+      algae:   ["#d7f9d0", "#a5d9a0", "#6fbd72", "#3ea04c", "#20803a", "#13613a", "#11402c", "#122414"],
+      oxy:     ["#400505", "#850a0b", "#6e6e6d", "#8f8f8e", "#b2b1b0", "#d6d5d4", "#ebf34b", "#ddaf19"],
+      speed:   ["#fffdcd", "#e1cd73", "#aaac20", "#5f920c", "#187a2f", "#0f5d3e", "#1a3d30", "#172313"]
+    };
+    const PALETA_POR_VARIABLE = {
+      "Temperature": "thermal",
+      "Temperature (2)": "thermal",
+      "Salinity": "haline",
+      "Conductivity": "haline",
+      "Specific conductivity": "haline",
+      "Density anomaly": "dense",
+      "Chlorophyll a": "algae",
+      "Dissolved O₂ concentration": "oxy",
+      "Dissolved O₂ saturation": "oxy",
+      "Speed of sound": "speed"
+    };
+    function escalaColor(variable) {
+      const colores = CMOCEAN[PALETA_POR_VARIABLE[variable]];
+      if (!colores) return "Viridis";
+      return colores.map((c, i) => [i / (colores.length - 1), c]);
+    }
+
+    let indice = null;
+    const cacheTablas = {};   // Excel ya leídos, para no descargarlos de nuevo
+
+    // ====== DISTANCIA ======
+    // Distancia en km entre dos puntos sobre la Tierra (fórmula del haversine)
+    function distanciaKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const rad = g => g * Math.PI / 180;
+      const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    // Distancia acumulada desde E01, siguiendo el orden del transecto
+    function distanciasAcumuladas() {
+      const coords = ESTACIONES_TRANSECTO.map(id => indice.estaciones.find(e => e.id === id));
+      const distancias = [0];
+      for (let i = 1; i < coords.length; i++) {
+        distancias.push(distancias[i - 1] +
+          distanciaKm(coords[i - 1].lat, coords[i - 1].lon, coords[i].lat, coords[i].lon));
+      }
+      return distancias;
+    }
+
+    // ====== LECTURA DEL EXCEL (igual que en visor_ctd.html) ======
+    function tablaDesdeExcel(buffer) {
+      const libro = XLSX.read(buffer, { type: "array" });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true });
+
+      const vistos = {};
+      const nombres = filas[0].map(c => {
+        const n = String(c === undefined || c === null ? "" : c).trim();
+        vistos[n] = (vistos[n] || 0) + 1;
+        return vistos[n] === 1 ? n : `${n} (${vistos[n]})`;
+      });
+
+      const columnas = {};
+      nombres.forEach((n, i) => {
+        columnas[n] = filas.slice(1).map(fila => {
+          const v = fila[i];
+          return typeof v === "number" && isFinite(v) ? v : null;
+        });
+      });
+      return { nombres, columnas };
+    }
+
+    async function cargarTabla(ruta) {
+      if (!cacheTablas[ruta]) {
+        const respuesta = await fetch(encodeURI(ruta));
+        if (!respuesta.ok) throw new Error("No se encontró el archivo " + ruta);
+        cacheTablas[ruta] = tablaDesdeExcel(await respuesta.arrayBuffer());
+      }
+      return cacheTablas[ruta];
+    }
+
+    // ====== PROCESAMIENTO PARA LA SECCIÓN ======
+    // Promedia el perfil cada PASO_VERTICAL_M metros.
+    // Devuelve un arreglo donde el índice k corresponde a la profundidad k·PASO_VERTICAL_M,
+    // con los huecos internos rellenados por interpolación lineal.
+    function promediarPerfil(profundidades, valores) {
+      const suma = [], cuenta = [];
+      profundidades.forEach((d, i) => {
+        const v = valores[i];
+        if (d === null || v === null || d < 0) return;
+        const k = Math.round(d / PASO_VERTICAL_M);
+        suma[k] = (suma[k] || 0) + v;
+        cuenta[k] = (cuenta[k] || 0) + 1;
+      });
+
+      const perfil = [];
+      for (let k = 0; k < suma.length; k++) perfil[k] = cuenta[k] ? suma[k] / cuenta[k] : null;
+
+      const conDatos = perfil.map((v, k) => v !== null ? k : -1).filter(k => k >= 0);
+      if (conDatos.length === 0) return null;
+
+      // Sobre el primer dato (cerca de la superficie) se repite el primer valor medido
+      for (let k = 0; k < conDatos[0]; k++) perfil[k] = perfil[conDatos[0]];
+      // Huecos entre datos: interpolación lineal
+      for (let j = 1; j < conDatos.length; j++) {
+        const k0 = conDatos[j - 1], k1 = conDatos[j];
+        for (let k = k0 + 1; k < k1; k++) {
+          perfil[k] = perfil[k0] + (perfil[k1] - perfil[k0]) * (k - k0) / (k1 - k0);
+        }
+      }
+      return perfil;
+    }
+
+    // Valor del perfil en el nivel k; bajo el último dato se repite el valor más profundo
+    // (solo para interpolar: esa zona luego queda tapada por el fondo gris)
+    const valorEn = (perfil, k) => perfil[Math.min(k, perfil.length - 1)];
+
+    // Construye la grilla (distancia × profundidad) interpolando linealmente entre estaciones vecinas
+    function construirGrilla(estaciones) {
+      // La grilla va de la primera a la última estación CON datos (nunca se extrapola)
+      const distMin = estaciones[0].dist;
+      const distMax = estaciones[estaciones.length - 1].dist;
+      const nivelMax = Math.max(...estaciones.map(e => e.perfil.length - 1));
+
+      // Columnas regulares más la posición exacta de cada estación
+      const xs = [];
+      for (let i = 0; i <= COLUMNAS_HORIZONTALES; i++) xs.push(distMin + (distMax - distMin) * i / COLUMNAS_HORIZONTALES);
+      estaciones.forEach(e => xs.push(e.dist));
+      xs.sort((a, b) => a - b);
+      const x = xs.filter((v, i) => i === 0 || v - xs[i - 1] > 1e-9);
+
+      const y = [];
+      for (let k = 0; k <= nivelMax; k++) y.push(k * PASO_VERTICAL_M);
+
+      const z = y.map(() => new Array(x.length).fill(null));
+      const fondo = [];
+
+      let s = 0;   // índice de la estación a la izquierda
+      x.forEach((xi, j) => {
+        while (s < estaciones.length - 2 && xi > estaciones[s + 1].dist) s++;
+        const a = estaciones[s], b = estaciones[s + 1];
+        const t = (xi - a.dist) / (b.dist - a.dist);
+
+        // El "fondo" (profundidad máxima medida) también se interpola entre estaciones
+        const nivelFondo = Math.round((a.perfil.length - 1) + t * ((b.perfil.length - 1) - (a.perfil.length - 1)));
+        fondo.push(nivelFondo * PASO_VERTICAL_M);
+
+        for (let k = 0; k <= nivelFondo; k++) {
+          z[k][j] = valorEn(a.perfil, k) + t * (valorEn(b.perfil, k) - valorEn(a.perfil, k));
+        }
+      });
+
+      return { x, y, z, fondo, profMax: nivelMax * PASO_VERTICAL_M };
+    }
+
+    // ====== DIBUJO ======
+    async function actualizarSeccion() {
+      const estado = document.getElementById("estado");
+      const mensaje = document.getElementById("mensaje");
+      const resumen = document.getElementById("resumen");
+      mensaje.textContent = "";
+      resumen.textContent = "";
+
+      const campana = indice.campanas.find(c => c.id === document.getElementById("selCampana").value);
+      const variable = document.getElementById("selVariable").value;
+      const distancias = distanciasAcumuladas();
+
+      // Carga de los Excel de la campaña (con aviso de avance)
+      const tablas = [];
+      for (let i = 0; i < ESTACIONES_TRANSECTO.length; i++) {
+        const id = ESTACIONES_TRANSECTO[i];
+        estado.textContent = `Cargando datos… estación ${id} (${i + 1} de ${ESTACIONES_TRANSECTO.length})`;
+        const archivo = campana.archivos[id];
+        try {
+          tablas.push(archivo ? await cargarTabla(archivo.ruta) : null);
+        } catch (e) {
+          tablas.push(null);
+        }
+      }
+      estado.textContent = "";
+
+      // Si la campaña cambió mientras cargaba, no dibujar una sección vieja
+      if (campana.id !== document.getElementById("selCampana").value ||
+          variable !== document.getElementById("selVariable").value) return;
+
+      // Perfil promediado de cada estación con datos de esta variable
+      const estaciones = [], sinDatos = [];
+      ESTACIONES_TRANSECTO.forEach((id, i) => {
+        const tabla = tablas[i];
+        const perfil = tabla && tabla.columnas[variable]
+          ? promediarPerfil(tabla.columnas[COLUMNA_PROFUNDIDAD], tabla.columnas[variable])
+          : null;
+        if (perfil) estaciones.push({ id, dist: distancias[i], perfil });
+        else sinDatos.push(id);
+      });
+
+      if (estaciones.length < 2) {
+        Plotly.purge("grafico");
+        mensaje.textContent = "No hay suficientes estaciones con datos de esta variable para dibujar la sección.";
+        return;
+      }
+
+      const grilla = construirGrilla(estaciones);
+      const nombreVar = etiqueta(variable);
+
+      const trazos = [
+        // Sección coloreada con líneas de contorno
+        {
+          type: "contour",
+          x: grilla.x, y: grilla.y, z: grilla.z,
+          colorscale: escalaColor(variable),
+          ncontours: 20,
+          contours: { coloring: "heatmap", showlabels: true, labelfont: { size: 10, color: "#ffffff" } },
+          line: { width: 0.5, color: "rgba(0,0,0,0.35)" },
+          connectgaps: false,
+          colorbar: { title: { text: nombreVar, side: "right" }, thickness: 16 },
+          hovertemplate: `Distancia: %{x:.1f} km<br>Profundidad: %{y:.0f} m<br>${nombreVar}: %{z:.3f}<extra></extra>`
+        },
+        // Zona bajo la profundidad máxima medida
+        {
+          type: "scatter",
+          x: [...grilla.x, grilla.x[grilla.x.length - 1], grilla.x[0]],
+          y: [...grilla.fondo, grilla.profMax + 5, grilla.profMax + 5],
+          fill: "toself",
+          fillcolor: COLOR_FONDO,
+          line: { color: "#7d7a73", width: 1 },
+          hoverinfo: "skip",
+          showlegend: false
+        },
+        // Línea punteada de cada estación (desde la superficie hasta su último dato)
+        ...estaciones.map(e => ({
+          type: "scatter",
+          mode: "lines",
+          x: [e.dist, e.dist],
+          y: [0, (e.perfil.length - 1) * PASO_VERTICAL_M],
+          line: { color: "rgba(0,0,0,0.55)", width: 1, dash: "dot" },
+          hovertemplate: `${e.id} · ${e.dist.toFixed(1)} km · ${((e.perfil.length - 1) * PASO_VERTICAL_M).toFixed(0)} m<extra></extra>`,
+          showlegend: false
+        }))
+      ];
+
+      // Nombre de cada estación sobre la sección
+      const nombresEstaciones = estaciones.map(e => ({
+        x: e.dist, y: 1, xref: "x", yref: "paper", yanchor: "bottom",
+        text: e.id, showarrow: false, textangle: -90,
+        font: { size: 11, color: "#22262b" }
+      }));
+
+      Plotly.react("grafico", trazos, {
+        title: {
+          text: `${nombreVar} · Campaña ${campana.orden}: ${campana.nombre}`,
+          font: { family: "Georgia, serif", size: 16 },
+          y: 0.98, yanchor: "top"
+        },
+        margin: { l: 70, r: 20, t: 90, b: 60 },
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#ffffff",
+        xaxis: {
+          title: { text: "Distancia desde E01 [km]" },
+          range: [0, distancias[distancias.length - 1]],   // siempre E01 a E17, aunque falte alguna estación
+          zeroline: false, showgrid: false
+        },
+        yaxis: {
+          title: { text: "Profundidad [m]" },
+          range: [grilla.profMax + 5, 0],   // la profundidad aumenta hacia abajo
+          zeroline: false, showgrid: false
+        },
+        annotations: nombresEstaciones,
+        font: { family: "Arial, Helvetica, sans-serif", color: "#22262b" }
+      }, {
+        responsive: true,
+        displaylogo: false,
+        toImageButtonOptions: {
+          format: "png",
+          filename: `transecto_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}`,
+          scale: 3
+        }
+      });
+
+      resumen.textContent =
+        `${estaciones.length} estaciones · ${(grilla.x[grilla.x.length - 1] - grilla.x[0]).toFixed(1)} km de transecto · ` +
+        `profundidad máxima ${grilla.profMax.toFixed(0)} m` +
+        (sinDatos.length ? ` · Sin datos de esta variable: ${sinDatos.join(", ")}` : "");
+    }
+
+    // ====== MENÚS ======
+    async function llenarMenus() {
+      const selCampana = document.getElementById("selCampana");
+      indice.campanas.forEach(c => selCampana.add(new Option(`${c.orden}. ${c.nombre}`, c.id)));
+
+      // Las variables se toman de las columnas de un Excel (todos tienen las mismas)
+      const primerArchivo = indice.campanas[0].archivos[ESTACIONES_TRANSECTO[1]];
+      const tabla = await cargarTabla(primerArchivo.ruta);
+      const selVariable = document.getElementById("selVariable");
+      tabla.nombres
+        .filter(n => n && !COLUMNAS_EXCLUIDAS.includes(n))
+        .forEach(n => selVariable.add(new Option(etiqueta(n), n)));
+      selVariable.value = "Temperature";
+    }
+
+    // ====== INICIO ======
+    document.getElementById("selCampana").addEventListener("change", actualizarSeccion);
+    document.getElementById("selVariable").addEventListener("change", actualizarSeccion);
+
+    if (typeof XLSX === "undefined" || typeof Plotly === "undefined") {
+      document.getElementById("mensaje").textContent =
+        "No se pudieron cargar las librerías. Revisa tu conexión a internet.";
+    } else {
+      fetch(ARCHIVO_INDICE)
+        .then(r => {
+          if (!r.ok) throw new Error("No se encontró " + ARCHIVO_INDICE);
+          return r.json();
+        })
+        .then(async datos => {
+          indice = datos;
+          await llenarMenus();
+          actualizarSeccion();
+        })
+        .catch(e => {
+          document.getElementById("mensaje").textContent =
+            e.message + ". Esta página debe abrirse desde GitHub Pages o un servidor local, no con doble clic.";
+        });
+    }
+  </script>
+</body>
+</html>
