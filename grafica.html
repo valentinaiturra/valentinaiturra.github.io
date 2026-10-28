@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gráfica de temperatura</title>
+
+  <!-- Librería para dibujar gráficas (Chart.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #22262b;
+      background: #f6f4ef;
+    }
+    .contenedor {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+    h1 { margin: 0 0 8px; }
+    p  { color: #5c636b; margin: 0 0 20px; }
+    a  { color: #1f5f5b; }
+    .caja-grafica {
+      background: #ffffff;
+      border: 1px solid #dcd8cd;
+      border-radius: 8px;
+      padding: 16px;
+      height: 420px;
+    }
+    .extra {
+      margin-top: 28px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.95rem;
+    }
+    #mensaje { color: #b3261e; margin-top: 12px; }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <a href="index.html">← Volver al inicio</a>
+    <h1>Temperatura diaria</h1>
+    <p>Esta gráfica se genera a partir del archivo <strong>datos.csv</strong> de mi repositorio.</p>
+
+    <div class="caja-grafica">
+      <canvas id="grafico"></canvas>
+    </div>
+    <div id="mensaje"></div>
+
+    <div class="extra">
+      <label for="archivo">Probar con otro archivo CSV (solo lo verás tú, no se sube a ningún lado):</label><br>
+      <input type="file" id="archivo" accept=".csv">
+    </div>
+  </div>
+
+  <script>
+    // ====== AJUSTES (puedes cambiarlos) ======
+    const ARCHIVO_DATOS = "datos.csv";   // nombre del archivo en tu repositorio
+    const TITULO_EJE_Y  = "Temperatura (°C)";
+    const COLORES = ["#2a7f9e", "#d9822b", "#1f5f5b", "#8e4a9b"];
+
+    let grafico = null;
+
+    // Convierte el texto del CSV en etiquetas y series de datos
+    function leerCSV(texto) {
+      const lineas = texto.trim().split(/\r?\n/);
+      const columnas = lineas.shift().split(",").map(c => c.trim());
+      const etiquetas = [];
+      const series = columnas.slice(1).map(() => []);
+
+      lineas.forEach(linea => {
+        if (!linea.trim()) return;
+        const partes = linea.split(",");
+        etiquetas.push(partes[0].trim());
+        series.forEach((serie, i) => {
+          const valor = parseFloat(partes[i + 1]);
+          serie.push(isNaN(valor) ? null : valor);
+        });
+      });
+
+      return { etiquetas, nombres: columnas.slice(1), series };
+    }
+
+    // Dibuja (o redibuja) la gráfica
+    function dibujar(datos) {
+      if (grafico) grafico.destroy();
+
+      grafico = new Chart(document.getElementById("grafico"), {
+        type: "line",
+        data: {
+          labels: datos.etiquetas,
+          datasets: datos.series.map((serie, i) => ({
+            label: datos.nombres[i],
+            data: serie,
+            borderColor: COLORES[i % COLORES.length],
+            backgroundColor: COLORES[i % COLORES.length],
+            tension: 0.25,
+            pointRadius: 3
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { title: { display: true, text: TITULO_EJE_Y } }
+          }
+        }
+      });
+    }
+
+    function mostrarError(texto) {
+      document.getElementById("mensaje").textContent = texto;
+    }
+
+    // Carga automática del archivo del repositorio
+    fetch(ARCHIVO_DATOS)
+      .then(r => {
+        if (!r.ok) throw new Error("No se encontró " + ARCHIVO_DATOS);
+        return r.text();
+      })
+      .then(texto => dibujar(leerCSV(texto)))
+      .catch(e => mostrarError(e.message + ". Revisa que el archivo esté subido en el mismo lugar que esta página."));
+
+    // Probar con un archivo local
+    document.getElementById("archivo").addEventListener("change", evento => {
+      const archivo = evento.target.files[0];
+      if (!archivo) return;
+      mostrarError("");
+      const lector = new FileReader();
+      lector.onload = () => dibujar(leerCSV(lector.result));
+      lector.readAsText(archivo);
+    });
+  </script>
+</body>
+</html>
