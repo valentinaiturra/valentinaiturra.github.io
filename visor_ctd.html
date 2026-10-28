@@ -28,6 +28,9 @@
 
     * { box-sizing: border-box; }
 
+    /* Asegura que lo marcado como "hidden" quede oculto aunque tenga otro display */
+    [hidden] { display: none !important; }
+
     body {
       margin: 0;
       font-family: Georgia, "Times New Roman", serif;
@@ -380,8 +383,9 @@
         line: { color: COLOR_PERFIL, width: 1.5 },
         hovertemplate: `${etiqueta(variable)}: %{x:.3f}<br>Profundidad: %{y:.2f} m<extra></extra>`
       }], {
-        title: { text: titulo, font: { family: "Georgia, serif", size: 16 } },
-        margin: { l: 70, r: 20, t: 90, b: 30 },
+        // Título pegado arriba para que no choque con el nombre del eje superior
+        title: { text: titulo, font: { family: "Georgia, serif", size: 16 }, y: 0.98, yanchor: "top" },
+        margin: { l: 70, r: 20, t: 110, b: 30 },
         paper_bgcolor: "#ffffff",
         plot_bgcolor: "#ffffff",
         xaxis: {
