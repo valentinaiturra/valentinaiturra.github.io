@@ -2,10 +2,238 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi primera página</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tu Nombre | Mi página</title>
+  <meta name="description" content="Página personal de Tu Nombre">
+
+  <style>
+    /* ====== COLORES (puedes cambiarlos aquí) ====== */
+    :root {
+      --fondo: #f6f4ef;
+      --texto: #22262b;
+      --texto-suave: #5c636b;
+      --acento: #1f5f5b;
+      --acento-oscuro: #174744;
+      --linea: #dcd8cd;
+      --blanco: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--texto);
+      background: var(--fondo);
+    }
+
+    .contenedor {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ====== MENÚ ====== */
+    header {
+      border-bottom: 1px solid var(--linea);
+      padding: 18px 0;
+    }
+
+    header .contenedor {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: var(--texto);
+      text-decoration: none;
+    }
+
+    nav a {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.95rem;
+      color: var(--texto-suave);
+      text-decoration: none;
+      margin-left: 20px;
+    }
+
+    nav a:hover { color: var(--acento); }
+
+    /* ====== PORTADA ====== */
+    .portada {
+      padding: 80px 0 60px;
+    }
+
+    .portada h1 {
+      font-size: clamp(2.4rem, 7vw, 3.8rem);
+      line-height: 1.1;
+      margin: 0 0 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .portada p {
+      font-size: 1.25rem;
+      color: var(--texto-suave);
+      max-width: 34em;
+      margin: 0 0 32px;
+    }
+
+    .boton {
+      display: inline-block;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      background: var(--acento);
+      color: var(--blanco);
+      padding: 12px 26px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    .boton:hover { background: var(--acento-oscuro); }
+
+    .boton:focus-visible,
+    nav a:focus-visible,
+    .logo:focus-visible {
+      outline: 3px solid #e0a526;
+      outline-offset: 3px;
+    }
+
+    /* ====== SECCIONES ====== */
+    section {
+      padding: 50px 0;
+      border-top: 1px solid var(--linea);
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      margin: 0 0 18px;
+    }
+
+    /* ====== PROYECTOS ====== */
+    .proyecto {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--linea);
+    }
+
+    .proyecto:last-child { border-bottom: none; }
+
+    .proyecto h3 {
+      margin: 0 0 4px;
+      font-size: 1.2rem;
+    }
+
+    .proyecto p {
+      margin: 0;
+      color: var(--texto-suave);
+      font-size: 1rem;
+    }
+
+    /* ====== CONTACTO ====== */
+    .contacto a {
+      color: var(--acento);
+    }
+
+    /* ====== PIE ====== */
+    footer {
+      border-top: 1px solid var(--linea);
+      padding: 28px 0;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+      color: var(--texto-suave);
+    }
+
+    @media (max-width: 520px) {
+      body { font-size: 17px; }
+      .portada { padding: 50px 0 40px; }
+      nav a { margin: 0 16px 0 0; }
+    }
+  </style>
 </head>
+
 <body>
-  <h1>¡Hola, mundo!</h1>
-  <p>Esta es mi página en GitHub Pages.</p>
+
+  <!-- ====== MENÚ ====== -->
+  <header>
+    <div class="contenedor">
+      <a class="logo" href="#inicio">Tu Nombre</a>
+      <nav>
+        <a href="#sobre-mi">Sobre mí</a>
+        <a href="#proyectos">Proyectos</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ====== PORTADA ====== -->
+    <div class="contenedor portada" id="inicio">
+      <h1>Hola, soy Tu Nombre.</h1>
+      <p>Aquí va una frase corta que diga qué haces o qué te apasiona. Por ejemplo: "Diseño, escribo y aprendo cosas nuevas cada día."</p>
+      <a class="boton" href="#contacto">Escríbeme</a>
+    </div>
+
+    <!-- ====== SOBRE MÍ ====== -->
+    <section id="sobre-mi">
+      <div class="contenedor">
+        <h2>Sobre mí</h2>
+        <p>Escribe aquí un párrafo sobre ti: dónde vives, a qué te dedicas y qué te gusta hacer en tu tiempo libre.</p>
+        <p>Puedes agregar un segundo párrafo contando por qué creaste esta página o qué esperas compartir en ella.</p>
+      </div>
+    </section>
+
+    <!-- ====== PROYECTOS ====== -->
+    <section id="proyectos">
+      <div class="contenedor">
+        <h2>Proyectos</h2>
+
+        <div class="proyecto">
+          <h3>Nombre del proyecto 1</h3>
+          <p>Una descripción breve de en qué consiste este proyecto.</p>
+        </div>
+
+        <div class="proyecto">
+          <h3>Nombre del proyecto 2</h3>
+          <p>Una descripción breve de en qué consiste este proyecto.</p>
+        </div>
+
+        <div class="proyecto">
+          <h3>Nombre del proyecto 3</h3>
+          <p>Una descripción breve de en qué consiste este proyecto.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CONTACTO ====== -->
+    <section id="contacto" class="contacto">
+      <div class="contenedor">
+        <h2>Contacto</h2>
+        <p>¿Quieres conversar o trabajar juntos? Escríbeme a
+          <a href="mailto:tucorreo@ejemplo.com">tucorreo@ejemplo.com</a>.
+        </p>
+        <p>También me encuentras en
+          <a href="https://github.com/tuusuario">GitHub</a>.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====== PIE DE PÁGINA ====== -->
+  <footer>
+    <div class="contenedor">
+      © 2026 Tu Nombre. Hecho con GitHub Pages.
+    </div>
+  </footer>
+
 </body>
 </html>
