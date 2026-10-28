@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visor CTD Puyuhuapi</title>
+  <meta name="description" content="Perfiles CTD del fiordo Puyuhuapi, proyecto Fondecyt 1262020">
+
+  <!-- Leaflet: mapa interactivo -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- SheetJS: lee los Excel directamente en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Plotly: gráfico del perfil (zoom y descarga PNG incluidos) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+
+  <style>
+    /* ====== COLORES (los mismos de index.html) ====== */
+    :root {
+      --fondo: #f6f4ef;
+      --texto: #22262b;
+      --texto-suave: #5c636b;
+      --acento: #1f5f5b;
+      --linea: #dcd8cd;
+      --blanco: #ffffff;
+      --error: #b3261e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--texto);
+      background: var(--fondo);
+    }
+
+    .contenedor {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    h1 { margin: 0 0 4px; line-height: 1.2; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+    .subtitulo { color: var(--texto-suave); margin: 0 0 20px; }
+
+    /* ====== DISTRIBUCIÓN: mapa a la izquierda, perfil a la derecha ====== */
+    .principal {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .caja {
+      background: var(--blanco);
+      border: 1px solid var(--linea);
+      border-radius: 8px;
+      padding: 16px;
+      min-width: 0;
+    }
+
+    #mapa {
+      height: 640px;
+      border-radius: 6px;
+    }
+
+    /* ====== PANEL DEL PERFIL ====== */
+    .panel h2 { margin: 0 0 4px; font-size: 1.4rem; }
+    .info { color: var(--texto-suave); font-family: Arial, Helvetica, sans-serif; font-size: 0.9rem; margin: 0 0 14px; }
+
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+    }
+    .controles > div { flex: 1 1 200px; }
+    .controles label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+
+    select {
+      width: 100%;
+      font-size: 1rem;
+      padding: 8px 10px;
+      border: 1px solid var(--linea);
+      border-radius: 6px;
+      background: var(--blanco);
+      color: var(--texto);
+    }
+    select:focus-visible {
+      outline: 3px solid #e0a526;
+      outline-offset: 2px;
+    }
+
+    #grafico { height: 520px; }
+
+    .vacio {
+      height: 100%;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--texto-suave);
+      padding: 24px;
+    }
+
+    #mensaje {
+      color: var(--error);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+    #resumen {
+      color: var(--texto-suave);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    /* Etiqueta permanente con el nombre de cada estación */
+    .etiqueta-estacion {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      font-weight: bold;
+      color: #10302e;
+      text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+      padding: 0;
+    }
+    .etiqueta-estacion::before { display: none; }
+
+    footer {
+      margin-top: 28px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+    }
+
+    @media (max-width: 860px) {
+      .principal { grid-template-columns: 1fr; }
+      #mapa { height: 420px; }
+      #grafico { height: 460px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <h1>Perfiles CTD del fiordo Puyuhuapi</h1>
+    <p class="subtitulo">Proyecto Fondecyt 1262020 · 17 estaciones · 8 campañas (septiembre 2023 a noviembre 2025)</p>
+
+    <div class="principal">
+      <!-- ====== MAPA ====== -->
+      <div class="caja">
+        <div id="mapa" role="region" aria-label="Mapa de estaciones"></div>
+      </div>
+
+      <!-- ====== PERFIL ====== -->
+      <div class="caja panel">
+        <div id="sinEstacion" class="vacio">Haz clic en una estación del mapa para ver su perfil.</div>
+
+        <div id="conEstacion" hidden>
+          <h2 id="tituloEstacion"></h2>
+          <p class="info" id="infoEstacion"></p>
+
+          <div class="controles">
+            <div>
+              <label for="selCampana">Campaña</label>
+              <select id="selCampana"></select>
+            </div>
+            <div>
+              <label for="selVariable">Variable</label>
+              <select id="selVariable"></select>
+            </div>
+          </div>
+
+          <div id="grafico"></div>
+          <div id="resumen"></div>
+          <div id="mensaje"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Datos sin promediar, tal como salen de los archivos CTD (bajada). Usa el ícono de cámara del gráfico para descargarlo en PNG.
+    </footer>
+  </div>
+
+  <script>
+    // ====== AJUSTES (puedes cambiarlos) ======
+    const ARCHIVO_INDICE = "datos/indice.json";
+    const COLUMNA_PROFUNDIDAD = "Depth";
+    const COLUMNAS_EXCLUIDAS = ["Time", COLUMNA_PROFUNDIDAD];   // no aparecen en el menú de variables
+    const COLOR_PERFIL = "#1b6ca8";
+
+    // Nombres en español con unidades para cada columna del Excel.
+    // Las unidades son las habituales de RBR; si alguna no coincide con tu instrumento, corrígela aquí.
+    // "Temperature (2)" es la segunda columna llamada "Temperature" del Excel (sensor de oxígeno).
+    const NOMBRES = {
+      "Conductivity": "Conductividad [mS/cm]",
+      "Temperature": "Temperatura [°C]",
+      "Temperature (2)": "Temperatura del sensor de oxígeno [°C]",
+      "Pressure": "Presión [dbar]",
+      "Chlorophyll a": "Clorofila a [µg/L]",
+      "Dissolved O₂ concentration": "Oxígeno disuelto [µmol/L]",
+      "Dissolved O₂ saturation": "Saturación de oxígeno [%]",
+      "Sea pressure": "Presión del mar [dbar]",
+      "Depth": "Profundidad [m]",
+      "Salinity": "Salinidad [PSU]",
+      "Speed of sound": "Velocidad del sonido [m/s]",
+      "Specific conductivity": "Conductividad específica [µS/cm]",
+      "Density anomaly": "Anomalía de densidad [kg/m³]"
+    };
+    const etiqueta = nombre => NOMBRES[nombre] || nombre;
+
+    let indice = null;            // contenido de indice.json
+    let estacionActual = null;    // ej. "E05"
+    const marcadores = {};        // marcador del mapa por estación
+    const cacheTablas = {};       // Excel ya leídos, para no descargarlos de nuevo
+
+    // ====== MAPA ======
+    const mapa = L.map("mapa");
+
+    const capaGEBCO = L.tileLayer.wms("https://wms.gebco.net/mapserv?", {
+      layers: "GEBCO_LATEST",
+      format: "image/png",
+      attribution: "Batimetría: GEBCO Compilation Group"
+    });
+    const capaOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© colaboradores de OpenStreetMap"
+    });
+    const capaSatelite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 18,
+      attribution: "Imágenes: Esri"
+    });
+
+    capaGEBCO.addTo(mapa);
+    L.control.layers({
+      "Batimetría GEBCO": capaGEBCO,
+      "Línea de costa (OpenStreetMap)": capaOSM,
+      "Satélite (Esri)": capaSatelite
+    }).addTo(mapa);
+    L.control.scale({ imperial: false }).addTo(mapa);
+
+    const estiloNormal = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#1f5f5b", fillOpacity: 1 };
+    const estiloElegido = { radius: 10, color: "#ffffff", weight: 3, fillColor: "#e0a526", fillOpacity: 1 };
+
+    function dibujarEstaciones() {
+      const limites = [];
+      indice.estaciones.forEach(est => {
+        const marcador = L.circleMarker([est.lat, est.lon], estiloNormal)
+          .addTo(mapa)
+          .bindTooltip(est.id, { permanent: true, direction: "right", offset: [8, 0], className: "etiqueta-estacion" })
+          .on("click", () => elegirEstacion(est.id));
+        marcadores[est.id] = marcador;
+        limites.push([est.lat, est.lon]);
+      });
+      mapa.fitBounds(limites, { padding: [30, 30] });
+    }
+
+    // ====== LECTURA DEL EXCEL ======
+    // Convierte la primera hoja en columnas numéricas.
+    // Si hay nombres repetidos (dos "Temperature"), al segundo le agrega " (2)".
+    function tablaDesdeExcel(buffer) {
+      const libro = XLSX.read(buffer, { type: "array" });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true });
+
+      const vistos = {};
+      const nombres = filas[0].map(c => {
+        const n = String(c === undefined || c === null ? "" : c).trim();
+        vistos[n] = (vistos[n] || 0) + 1;
+        return vistos[n] === 1 ? n : `${n} (${vistos[n]})`;
+      });
+
+      const columnas = {};
+      nombres.forEach((n, i) => {
+        columnas[n] = filas.slice(1).map(fila => {
+          const v = fila[i];
+          return typeof v === "number" && isFinite(v) ? v : null;
+        });
+      });
+      return { nombres, columnas };
+    }
+
+    async function cargarTabla(ruta) {
+      if (!cacheTablas[ruta]) {
+        const respuesta = await fetch(encodeURI(ruta));
+        if (!respuesta.ok) throw new Error("No se encontró el archivo " + ruta);
+        cacheTablas[ruta] = tablaDesdeExcel(await respuesta.arrayBuffer());
+      }
+      return cacheTablas[ruta];
+    }
+
+    // ====== PANEL ======
+    function elegirEstacion(id) {
+      if (estacionActual) marcadores[estacionActual].setStyle(estiloNormal);
+      estacionActual = id;
+      marcadores[id].setStyle(estiloElegido).bringToFront();
+
+      const est = indice.estaciones.find(e => e.id === id);
+      document.getElementById("sinEstacion").hidden = true;
+      document.getElementById("conEstacion").hidden = false;
+      document.getElementById("tituloEstacion").textContent = "Estación " + id;
+      document.getElementById("infoEstacion").textContent =
+        `${Math.abs(est.lat).toFixed(4)}° S, ${Math.abs(est.lon).toFixed(4)}° O`;
+
+      // Menú de campañas: solo las que tienen archivo para esta estación
+      const selCampana = document.getElementById("selCampana");
+      const campanaPrevia = selCampana.value;
+      selCampana.innerHTML = "";
+      indice.campanas.forEach(c => {
+        const archivo = c.archivos[id];
+        if (!archivo) return;
+        const fecha = archivo.fecha.split("-").reverse().join("-");
+        const detalle = archivo.hora ? archivo.hora : archivo.nota;
+        selCampana.add(new Option(`${c.orden}. ${c.nombre} (${fecha}, ${detalle})`, c.id));
+      });
+      if ([...selCampana.options].some(o => o.value === campanaPrevia)) selCampana.value = campanaPrevia;
+
+      actualizarPerfil();
+    }
+
+    async function actualizarPerfil() {
+      const mensaje = document.getElementById("mensaje");
+      const resumen = document.getElementById("resumen");
+      mensaje.textContent = "";
+      resumen.textContent = "Cargando datos…";
+
+      const campana = indice.campanas.find(c => c.id === document.getElementById("selCampana").value);
+      const archivo = campana.archivos[estacionActual];
+
+      let tabla;
+      try {
+        tabla = await cargarTabla(archivo.ruta);
+      } catch (e) {
+        resumen.textContent = "";
+        mensaje.textContent = e.message;
+        return;
+      }
+
+      // Menú de variables: columnas con al menos un número, conservando la elección anterior
+      const selVariable = document.getElementById("selVariable");
+      const variablePrevia = selVariable.value || "Temperature";
+      selVariable.innerHTML = "";
+      tabla.nombres
+        .filter(n => n && !COLUMNAS_EXCLUIDAS.includes(n) && tabla.columnas[n].some(v => v !== null))
+        .forEach(n => selVariable.add(new Option(etiqueta(n), n)));
+      if ([...selVariable.options].some(o => o.value === variablePrevia)) selVariable.value = variablePrevia;
+
+      dibujarPerfil(tabla, campana, archivo);
+    }
+
+    function dibujarPerfil(tabla, campana, archivo) {
+      const variable = document.getElementById("selVariable").value;
+      const profundidades = tabla.columnas[COLUMNA_PROFUNDIDAD];
+      const valores = tabla.columnas[variable];
+
+      // Solo los pares con valor y profundidad (los datos no se modifican)
+      const x = [], y = [];
+      valores.forEach((v, i) => {
+        if (v !== null && profundidades[i] !== null) { x.push(v); y.push(profundidades[i]); }
+      });
+
+      const titulo = `Estación ${estacionActual} · ${campana.nombre}`;
+      const nombreArchivo = `perfil_${estacionActual}_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}`;
+
+      Plotly.react("grafico", [{
+        x, y,
+        type: "scatter",
+        mode: "lines",
+        line: { color: COLOR_PERFIL, width: 1.5 },
+        hovertemplate: `${etiqueta(variable)}: %{x:.3f}<br>Profundidad: %{y:.2f} m<extra></extra>`
+      }], {
+        title: { text: titulo, font: { family: "Georgia, serif", size: 16 } },
+        margin: { l: 70, r: 20, t: 90, b: 30 },
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#ffffff",
+        xaxis: {
+          title: { text: etiqueta(variable) },
+          side: "top",                 // la variable arriba, como en los perfiles oceanográficos
+          gridcolor: "#e6e3db",
+          zeroline: false
+        },
+        yaxis: {
+          title: { text: etiqueta(COLUMNA_PROFUNDIDAD) },
+          autorange: "reversed",       // la profundidad aumenta hacia abajo
+          gridcolor: "#e6e3db",
+          zeroline: false
+        },
+        font: { family: "Arial, Helvetica, sans-serif", color: "#22262b" }
+      }, {
+        responsive: true,
+        displaylogo: false,
+        locale: "es",
+        toImageButtonOptions: { format: "png", filename: nombreArchivo, scale: 3 }
+      });
+
+      const resumen = document.getElementById("resumen");
+      if (x.length === 0) {
+        resumen.textContent = "";
+        document.getElementById("mensaje").textContent = "Esta variable no tiene datos en este archivo.";
+        return;
+      }
+      const minimo = x.reduce((a, b) => Math.min(a, b));
+      const maximo = x.reduce((a, b) => Math.max(a, b));
+      const profMax = y.reduce((a, b) => Math.max(a, b));
+      resumen.textContent =
+        `${x.length} mediciones · rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)} · profundidad máxima ${profMax.toFixed(1)} m` +
+        (archivo.nota ? ` · Nota del archivo: ${archivo.nota}` : "");
+    }
+
+    // ====== INICIO ======
+    document.getElementById("selCampana").addEventListener("change", actualizarPerfil);
+    document.getElementById("selVariable").addEventListener("change", actualizarPerfil);
+
+    if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly === "undefined") {
+      document.getElementById("sinEstacion").textContent =
+        "No se pudieron cargar las librerías. Revisa tu conexión a internet.";
+    } else {
+      fetch(ARCHIVO_INDICE)
+        .then(r => {
+          if (!r.ok) throw new Error("No se encontró " + ARCHIVO_INDICE);
+          return r.json();
+        })
+        .then(datos => { indice = datos; dibujarEstaciones(); })
+        .catch(e => {
+          document.getElementById("sinEstacion").textContent =
+            e.message + ". Esta página debe abrirse desde GitHub Pages o un servidor local, no con doble clic.";
+        });
+    }
+  </script>
+</body>
+</html>
