@@ -14,12 +14,15 @@
   <style>
     /* ====== COLORES ====== */
     :root {
-      --fondo: #f6f4ef;           /* "cielo": mitad de arriba */
+      --fondo: #f6f4ef;
       --texto: #22262b;
       --texto-suave: #5c636b;
-      --mar-superficie: #2f7896;  /* agua justo bajo la superficie */
-      --mar-fondo: #0b2438;       /* agua profunda, abajo de la página */
-      --brillo: #9fdcf0;          /* línea de la superficie */
+      --cielo-arriba: #f6f4ef;    /* cielo: claro arriba... */
+      --cielo-horizonte: #e6eef1; /* ...levemente azulado cerca del horizonte */
+      --mar-superficie: #b3d4de;  /* agua clara justo bajo la superficie */
+      --mar-fondo: #6f9fb2;       /* agua más oscura abajo (sin llegar a negro) */
+      --brillo: #ffffff;          /* línea de la superficie */
+      --texto-agua: #0e3b52;      /* texto sobre el agua */
       --borde-punto: #0e3b52;
       --resalte: #e0a526;
       --blanco: #ffffff;
@@ -33,16 +36,40 @@
       overflow-x: hidden;         /* evita barra horizontal por la línea de ancho completo */
       display: flex;
       flex-direction: column;
-      justify-content: center;    /* la línea de tiempo queda justo al medio de la pantalla... */
+      justify-content: center;    /* la línea de tiempo queda justo al medio de la pantalla, donde está el horizonte */
       font-family: Arial, Helvetica, sans-serif;
       color: var(--texto);
-      /* ...que es donde empieza el mar: mitad de arriba clara, mitad de abajo agua que se oscurece */
-      background:
-        linear-gradient(to bottom,
-          var(--fondo) 0%, var(--fondo) 50%,
-          var(--mar-superficie) 50%, var(--mar-fondo) 100%)
-        fixed;
+      background: var(--fondo);
     }
+
+    /* ====== PAISAJE DE FIORDO (fondo fijo detrás de todo) ====== */
+    .paisaje {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      animation: aparecer 1.2s ease-out both;
+    }
+    .cielo {
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 50%;
+      background: linear-gradient(to bottom, var(--cielo-arriba) 30%, var(--cielo-horizonte) 100%);
+    }
+    .agua {
+      position: absolute;
+      left: 0; right: 0; top: 50%; bottom: 0;
+      background: linear-gradient(to bottom, var(--mar-superficie) 0%, var(--mar-fondo) 100%);
+    }
+    /* Cerros: apoyados justo sobre el horizonte */
+    .cerros, .reflejo, .oleaje {
+      position: absolute;
+      left: 0;
+      width: 100%;
+    }
+    .cerros { bottom: 50%; height: 20vh; }
+    /* Reflejo: los mismos cerros dados vuelta, muy tenues, bajo el horizonte */
+    .reflejo { top: 50%; height: 20vh; transform: scaleY(-1); opacity: 0.22; }
+    .oleaje { top: 50%; height: 40vh; }
 
     .contenedor {
       position: relative;
@@ -105,7 +132,7 @@
       top: 12%;
       bottom: 12%;
       left: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
-      border-left: 1px dashed rgba(14, 59, 82, 0.3);
+      border-left: 1px dashed rgba(14, 59, 82, 0.25);
       animation: aparecer 0.6s ease-out 0.9s both;
     }
 
@@ -118,7 +145,7 @@
       font-family: "Fraunces", Georgia, serif;
       font-size: 1.1rem;
       letter-spacing: 0.08em;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(14, 59, 82, 0.65);
       animation: aparecer 0.6s ease-out 0.9s both;
     }
 
@@ -164,9 +191,9 @@
     /* Etiquetas alternadas: así no chocan las campañas cercanas en el tiempo */
     .arriba .texto { bottom: 36px; }
     .abajo .texto { top: 36px; }
-    /* Las de abajo quedan sobre el agua: texto claro */
-    .abajo .texto .mes { color: var(--blanco); }
-    .abajo .texto .anio-c { color: rgba(255, 255, 255, 0.75); }
+    /* Las de abajo quedan sobre el agua: azul oscuro */
+    .abajo .texto .mes { color: var(--texto-agua); }
+    .abajo .texto .anio-c { color: rgba(14, 59, 82, 0.75); }
 
     /* Al pasar el mouse o con el teclado: el círculo crece y se pone naranjo */
     .campana:hover .punto,
@@ -188,12 +215,13 @@
 
     /* Si la persona pidió a su sistema reducir el movimiento, no se anima nada */
     @media (prefers-reduced-motion: reduce) {
-      .eje, .division, .anio, .campana { animation: none; }
+      .eje, .division, .anio, .campana, .paisaje { animation: none; }
     }
 
-    /* ====== CELULAR: línea vertical, sin el mar (no calza con una línea vertical) ====== */
+    /* ====== CELULAR: línea vertical, sin el paisaje (no calza con una línea vertical) ====== */
     @media (max-width: 700px) {
-      body { justify-content: flex-start; background: var(--fondo); }
+      .paisaje { display: none; }
+      body { justify-content: flex-start; }
       .contenedor { padding: 32px 16px; }
       .encabezado { position: static; margin-bottom: 28px; }
 
@@ -242,6 +270,38 @@
 </head>
 
 <body>
+  <!-- ====== PAISAJE DE FIORDO (solo decoración) ======
+       Tres capas de cerros: las más lejanas más claras (efecto de neblina).
+       Las laderas suben hacia los costados y bajan al centro: la entrada del fiordo. -->
+  <div class="paisaje" aria-hidden="true">
+    <div class="cielo"></div>
+    <div class="agua"></div>
+
+    <svg class="cerros" viewBox="0 0 1200 200" preserveAspectRatio="none">
+      <!-- Lejanos -->
+      <path fill="#d3dfe4" d="M0,200 L0,70 C70,55 130,30 210,42 C290,54 330,18 410,26 C490,34 540,72 620,62 C700,52 740,14 820,22 C900,30 950,64 1030,54 C1100,46 1150,26 1200,34 L1200,200 Z"/>
+      <!-- Intermedios -->
+      <path fill="#b8cbd3" d="M0,200 L0,82 C60,78 110,92 180,108 C250,124 320,104 400,118 C480,132 540,150 620,146 C700,142 760,120 840,124 C920,128 980,104 1060,92 C1120,84 1170,74 1200,70 L1200,200 Z"/>
+      <!-- Cercanos: altos en los costados, bajos al centro -->
+      <path fill="#9bb4be" d="M0,200 L0,96 C50,100 110,128 190,148 C290,170 420,182 600,184 C780,182 910,170 1010,148 C1090,128 1150,100 1200,94 L1200,200 Z"/>
+    </svg>
+
+    <!-- Reflejo de los cerros en el agua -->
+    <svg class="reflejo" viewBox="0 0 1200 200" preserveAspectRatio="none">
+      <path fill="#4f7f92" d="M0,200 L0,82 C60,78 110,92 180,108 C250,124 320,104 400,118 C480,132 540,150 620,146 C700,142 760,120 840,124 C920,128 980,104 1060,92 C1120,84 1170,74 1200,70 L1200,200 Z"/>
+      <path fill="#3f6f82" d="M0,200 L0,96 C50,100 110,128 190,148 C290,170 420,182 600,184 C780,182 910,170 1010,148 C1090,128 1150,100 1200,94 L1200,200 Z"/>
+    </svg>
+
+    <!-- Líneas finas de oleaje -->
+    <svg class="oleaje" viewBox="0 0 1200 300" preserveAspectRatio="none" fill="none" stroke="#ffffff" stroke-linecap="round">
+      <path stroke-opacity="0.45" stroke-width="1.5" d="M80,40 q30,-6 60,0 t60,0"/>
+      <path stroke-opacity="0.35" stroke-width="1.5" d="M930,60 q30,-6 60,0 t60,0 t60,0"/>
+      <path stroke-opacity="0.30" stroke-width="1.5" d="M420,120 q30,-6 60,0 t60,0"/>
+      <path stroke-opacity="0.25" stroke-width="1.5" d="M700,190 q30,-6 60,0 t60,0 t60,0"/>
+      <path stroke-opacity="0.20" stroke-width="1.5" d="M180,250 q30,-6 60,0 t60,0"/>
+    </svg>
+  </div>
+
   <div class="contenedor">
     <header class="encabezado">
       <h1>Campañas fiordo Puyuhuapi</h1>
