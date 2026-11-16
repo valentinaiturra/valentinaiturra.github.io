@@ -69,20 +69,25 @@
       border-radius: 6px;
     }
 
-    /* ====== PANEL DEL PERFIL ====== */
-    .panel h2 { margin: 0 0 4px; font-size: 1.4rem; }
-    .info { color: var(--texto-suave); font-family: Arial, Helvetica, sans-serif; font-size: 0.9rem; margin: 0 0 14px; }
+    /* ====== PANEL DEL PERFIL: gráfico a la izquierda, controles en columna a la derecha ====== */
+    .zona-perfil {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 200px;
+      gap: 16px;
+    }
+    .panel h2 { margin: 0 0 2px; font-size: 1.4rem; }
+    .info { color: var(--texto-suave); font-family: Arial, Helvetica, sans-serif; font-size: 0.85rem; margin: 0 0 16px; }
 
-    .controles {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      margin-bottom: 12px;
+    .lateral {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 0.9rem;
     }
-    .controles > div { flex: 1 1 200px; }
-    .controles label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+    .campo { margin-bottom: 14px; }
+    .lateral label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+
+    /* Desde / hasta lado a lado dentro de la columna */
+    .rango { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #btnTodo { width: 100%; }
 
     select {
       width: 100%;
@@ -97,10 +102,6 @@
       outline: 3px solid #e0a526;
       outline-offset: 2px;
     }
-
-    /* ====== RANGO DE PROFUNDIDAD ====== */
-    .controles.rango > div { flex: 1 1 120px; }
-    .controles.rango > .boton { flex: 0 0 auto; align-self: flex-end; }
 
     input[type="number"] {
       width: 100%;
@@ -127,7 +128,7 @@
       outline-offset: 2px;
     }
 
-    #grafico { height: 520px; }
+    #grafico { height: 640px; }   /* misma altura que el mapa: el perfil queda vertical */
 
     .vacio {
       height: 100%;
@@ -178,7 +179,10 @@
     @media (max-width: 700px) {
       .principal { grid-template-columns: 1fr; }
       #mapa { height: 420px; }
-      #grafico { height: 460px; }
+      #grafico { height: 520px; }
+      /* En celular los controles van arriba del gráfico */
+      .zona-perfil { grid-template-columns: 1fr; }
+      .lateral { order: -1; }
     }
   </style>
 </head>
@@ -198,39 +202,44 @@
       <div class="caja panel">
         <div id="sinEstacion" class="vacio">Haz clic en una estación del mapa para ver su perfil.</div>
 
-        <div id="conEstacion" hidden>
-          <h2 id="tituloEstacion"></h2>
-          <p class="info" id="infoEstacion"></p>
+        <div id="conEstacion" class="zona-perfil" hidden>
+          <!-- Gráfico (izquierda) -->
+          <div id="grafico"></div>
 
-          <div class="controles">
-            <div>
+          <!-- Columna de controles (derecha) -->
+          <div class="lateral">
+            <h2 id="tituloEstacion"></h2>
+            <p class="info" id="infoEstacion"></p>
+
+            <div class="campo">
               <label for="selCampana">Campaña</label>
               <select id="selCampana"></select>
             </div>
-            <div>
+            <div class="campo">
               <label for="selVariable">Variable</label>
               <select id="selVariable"></select>
             </div>
-          </div>
 
-          <!-- Rango de profundidad: casilla vacía = sin límite por ese lado -->
-          <div class="controles rango">
-            <div>
-              <label for="profDesde">Profundidad desde [m]</label>
-              <input type="number" id="profDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+            <!-- Rango de profundidad: casilla vacía = sin límite por ese lado -->
+            <div class="campo">
+              <div class="rango">
+                <div>
+                  <label for="profDesde">Desde [m]</label>
+                  <input type="number" id="profDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+                </div>
+                <div>
+                  <label for="profHasta">Hasta [m]</label>
+                  <input type="number" id="profHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
+                </div>
+              </div>
             </div>
-            <div>
-              <label for="profHasta">hasta [m]</label>
-              <input type="number" id="profHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
-            </div>
-            <div class="boton">
+            <div class="campo">
               <button type="button" id="btnTodo">Todo el perfil</button>
             </div>
-          </div>
 
-          <div id="grafico"></div>
-          <div id="resumen"></div>
-          <div id="mensaje"></div>
+            <div id="resumen"></div>
+            <div id="mensaje"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -283,7 +292,8 @@
     }).addTo(mapa);
     L.control.scale({ imperial: false }).addTo(mapa);
 
-    const estiloNormal = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#1f5f5b", fillOpacity: 1 };
+    // Celeste brillante: resalta sobre el verde del bosque y el azul oscuro del agua (y se distingue del naranjo elegido)
+    const estiloNormal = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#19b5ff", fillOpacity: 1 };
     const estiloElegido = { radius: 10, color: "#ffffff", weight: 3, fillColor: "#e0a526", fillOpacity: 1 };
 
     function dibujarEstaciones() {
