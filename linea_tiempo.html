@@ -6,16 +6,23 @@
   <title>Campañas fiordo Puyuhuapi</title>
   <meta name="description" content="Línea de tiempo de las campañas CTD del fiordo Puyuhuapi, proyecto Fondecyt 1262020">
 
+  <!-- Tipografía Fraunces (Google Fonts) para el título -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap">
+
   <style>
-    /* ====== COLORES (los mismos del visor CTD) ====== */
+    /* ====== COLORES ====== */
     :root {
-      --fondo: #f6f4ef;
+      --fondo: #f6f4ef;           /* "cielo": mitad de arriba */
       --texto: #22262b;
       --texto-suave: #5c636b;
-      --acento: #1f5f5b;
-      --linea: #dcd8cd;
-      --blanco: #ffffff;
+      --mar-superficie: #2f7896;  /* agua justo bajo la superficie */
+      --mar-fondo: #0b2438;       /* agua profunda, abajo de la página */
+      --brillo: #9fdcf0;          /* línea de la superficie */
+      --borde-punto: #0e3b52;
       --resalte: #e0a526;
+      --blanco: #ffffff;
     }
 
     * { box-sizing: border-box; }
@@ -23,67 +30,100 @@
     body {
       margin: 0;
       min-height: 100vh;
+      overflow-x: hidden;         /* evita barra horizontal por la línea de ancho completo */
       display: flex;
       flex-direction: column;
-      justify-content: center;       /* la línea de tiempo queda al centro de la pantalla */
-      font-family: Georgia, "Times New Roman", serif;
+      justify-content: center;    /* la línea de tiempo queda justo al medio de la pantalla... */
+      font-family: Arial, Helvetica, sans-serif;
       color: var(--texto);
-      background: var(--fondo);
+      /* ...que es donde empieza el mar: mitad de arriba clara, mitad de abajo agua que se oscurece */
+      background:
+        linear-gradient(to bottom,
+          var(--fondo) 0%, var(--fondo) 50%,
+          var(--mar-superficie) 50%, var(--mar-fondo) 100%)
+        fixed;
     }
 
     .contenedor {
+      position: relative;
       width: 100%;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 16px;
+      padding: 0 16px;
     }
 
-    h1 { margin: 0 0 4px; text-align: center; line-height: 1.2; font-size: clamp(1.6rem, 4vw, 2.2rem); }
-    .subtitulo { margin: 0 0 40px; text-align: center; color: var(--texto-suave); }
+    /* El título va encima de la línea sin empujarla: así la línea coincide con la superficie */
+    .encabezado {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: calc(100% + 8px);
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 600;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+    .subtitulo {
+      margin: 0;
+      font-family: "Fraunces", Georgia, serif;
+      font-style: italic;
+      font-size: 1.15rem;
+      color: var(--texto-suave);
+    }
 
     /* ====== LÍNEA DE TIEMPO (horizontal en computador) ======
        Cada elemento tiene --pos entre 0 y 1: su lugar en el tiempo
        (0 = septiembre 2023, 1 = noviembre 2025, proporcional a los meses). */
     .linea-tiempo {
-      --margen: 7%;                  /* espacio a los lados para que no se corten las etiquetas */
+      --margen: 7%;               /* espacio a los lados para que no se corten las etiquetas */
       position: relative;
       height: 300px;
-      font-family: Arial, Helvetica, sans-serif;
     }
 
+    /* La superficie del mar */
     .eje {
       position: absolute;
-      left: var(--margen);
-      right: var(--margen);
+      left: calc(50% - 50vw);     /* cruza toda la pantalla, como un horizonte */
+      width: 100vw;
       top: 50%;
       height: 3px;
       margin-top: -1.5px;
-      background: var(--acento);
+      background: var(--brillo);
       border-radius: 2px;
+      transform-origin: left center;
+      animation: dibujar-x 0.9s ease-out both;
     }
 
     /* Inicio de cada año: línea punteada vertical */
     .division {
       position: absolute;
-      top: 15%;
-      bottom: 15%;
+      top: 12%;
+      bottom: 12%;
       left: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
-      border-left: 1px dashed var(--linea);
+      border-left: 1px dashed rgba(14, 59, 82, 0.3);
+      animation: aparecer 0.6s ease-out 0.9s both;
     }
 
-    /* Año escrito abajo, al centro de su tramo */
+    /* Año escrito abajo (dentro del agua), al centro de su tramo */
     .anio {
       position: absolute;
       bottom: 0;
       left: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
       transform: translateX(-50%);
-      font-size: 0.85rem;
-      font-weight: bold;
-      letter-spacing: 0.05em;
-      color: var(--texto-suave);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.7);
+      animation: aparecer 0.6s ease-out 0.9s both;
     }
 
-    /* Cada campaña: el círculo es el enlace (la etiqueta también es cliqueable) */
+    /* Cada campaña: el círculo es el enlace (la etiqueta también es cliqueable).
+       --i es el orden: los círculos aparecen uno tras otro. */
     .campana {
       position: absolute;
       top: 50%;
@@ -93,6 +133,8 @@
       margin: -13px 0 0 -13px;
       color: var(--texto);
       text-decoration: none;
+      animation: aparecer-punto 0.45s ease-out both;
+      animation-delay: calc(0.6s + var(--i) * 0.12s);
     }
 
     .punto {
@@ -100,9 +142,9 @@
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: var(--acento);
-      border: 3px solid var(--blanco);
-      box-shadow: 0 0 0 1px var(--acento), 0 2px 6px rgba(0, 0, 0, 0.2);
+      background: var(--blanco);
+      border: 3px solid var(--borde-punto);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
       transition: transform 0.15s, background 0.15s;
     }
 
@@ -120,75 +162,91 @@
     .texto .anio-c { color: var(--texto-suave); }
 
     /* Etiquetas alternadas: así no chocan las campañas cercanas en el tiempo */
-    .abajo .texto { top: 36px; }
     .arriba .texto { bottom: 36px; }
+    .abajo .texto { top: 36px; }
+    /* Las de abajo quedan sobre el agua: texto claro */
+    .abajo .texto .mes { color: var(--blanco); }
+    .abajo .texto .anio-c { color: rgba(255, 255, 255, 0.75); }
 
-    /* Al pasar el mouse o con el teclado: el círculo crece y cambia de color */
+    /* Al pasar el mouse o con el teclado: el círculo crece y se pone naranjo */
     .campana:hover .punto,
     .campana:focus-visible .punto {
       transform: scale(1.3);
       background: var(--resalte);
-      box-shadow: 0 0 0 1px var(--resalte), 0 2px 8px rgba(0, 0, 0, 0.25);
     }
-    .campana:hover .mes,
-    .campana:focus-visible .mes { color: var(--acento); }
     .campana:focus-visible { outline: none; }
     .campana:focus-visible .punto { outline: 3px solid var(--resalte); outline-offset: 3px; }
 
-    footer {
-      margin-top: 40px;
-      text-align: center;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 0.85rem;
-      color: var(--texto-suave);
+    /* ====== ANIMACIONES DE ENTRADA ====== */
+    @keyframes dibujar-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes dibujar-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes aparecer-punto {
+      from { opacity: 0; transform: scale(0.3); }
+      to   { opacity: 1; transform: scale(1); }
     }
-    footer a { color: var(--acento); }
 
-    /* ====== CELULAR: la línea se vuelve vertical ====== */
+    /* Si la persona pidió a su sistema reducir el movimiento, no se anima nada */
+    @media (prefers-reduced-motion: reduce) {
+      .eje, .division, .anio, .campana { animation: none; }
+    }
+
+    /* ====== CELULAR: línea vertical, sin el mar (no calza con una línea vertical) ====== */
     @media (max-width: 700px) {
-      body { justify-content: flex-start; }
+      body { justify-content: flex-start; background: var(--fondo); }
+      .contenedor { padding: 32px 16px; }
+      .encabezado { position: static; margin-bottom: 28px; }
+
       .linea-tiempo { --margen: 4%; height: 760px; }
 
       .eje {
         left: 40px; right: auto;
-        top: var(--margen); bottom: var(--margen);
+        top: 0; bottom: 0;
         width: 3px; height: auto;
         margin: 0 0 0 -1.5px;
+        background: var(--borde-punto);
+        transform-origin: center top;
+        animation-name: dibujar-y;
       }
       .division {
         top: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
         bottom: auto;
         left: 10px; right: 0;
         border-left: none;
-        border-top: 1px dashed var(--linea);
+        border-top: 1px dashed rgba(14, 59, 82, 0.3);
       }
       .anio {
         top: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
         bottom: auto;
         left: auto; right: 0;
         transform: translateY(-50%);
+        color: var(--texto-suave);
       }
       .campana {
         top: calc(var(--margen) + var(--pos) * (100% - 2 * var(--margen)));
         left: 40px;
       }
       .texto,
-      .abajo .texto,
-      .arriba .texto {
+      .arriba .texto,
+      .abajo .texto {
         top: 50%; bottom: auto;
         left: 38px;
         transform: translateY(-50%);
         text-align: left;
       }
       .texto span { display: inline; }
+      .abajo .texto .mes { color: var(--texto); }
+      .abajo .texto .anio-c { color: var(--texto-suave); }
     }
   </style>
 </head>
 
 <body>
   <div class="contenedor">
-    <h1>Campañas fiordo Puyuhuapi</h1>
-    <p class="subtitulo">Proyecto Fondecyt 1262020</p>
+    <header class="encabezado">
+      <h1>Campañas fiordo Puyuhuapi</h1>
+      <p class="subtitulo">Proyecto Fondecyt 1262020</p>
+    </header>
 
     <!-- Posiciones (--pos) = meses desde septiembre 2023 / 26 meses totales -->
     <nav class="linea-tiempo" aria-label="Línea de tiempo de campañas">
@@ -203,14 +261,14 @@
       <div class="anio" style="--pos: 0.3846">2024</div>
       <div class="anio" style="--pos: 0.8077">2025</div>
 
-      <a class="campana abajo"  style="--pos: 0"      href="campanas/1_septiembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Septiembre</span> <span class="anio-c">2023</span></span></a>
-      <a class="campana arriba" style="--pos: 0.0769" href="campanas/2_noviembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2023</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.1923" href="campanas/3_febrero_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana arriba" style="--pos: 0.3462" href="campanas/4_junio_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Junio</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.5"    href="campanas/5_octubre_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Octubre</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana arriba" style="--pos: 0.6538" href="campanas/6_febrero_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2025</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.8846" href="campanas/7_agosto_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Agosto</span> <span class="anio-c">2025</span></span></a>
-      <a class="campana arriba" style="--pos: 1"      href="campanas/8_noviembre_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana abajo"  style="--pos: 0;      --i: 0" href="campanas/1_septiembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Septiembre</span> <span class="anio-c">2023</span></span></a>
+      <a class="campana arriba" style="--pos: 0.0769; --i: 1" href="campanas/2_noviembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2023</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.1923; --i: 2" href="campanas/3_febrero_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana arriba" style="--pos: 0.3462; --i: 3" href="campanas/4_junio_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Junio</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.5;    --i: 4" href="campanas/5_octubre_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Octubre</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana arriba" style="--pos: 0.6538; --i: 5" href="campanas/6_febrero_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.8846; --i: 6" href="campanas/7_agosto_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Agosto</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana arriba" style="--pos: 1;      --i: 7" href="campanas/8_noviembre_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2025</span></span></a>
     </nav>
   </div>
 </body>
