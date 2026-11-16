@@ -152,6 +152,39 @@ select:focus-visible, input[type="number"]:focus-visible, button:focus-visible {
 }
 .etiqueta-estacion::before { display: none; }
 
+/* ====== SECCIÓN VERTICAL (debajo del mapa y el perfil) ====== */
+.caja-seccion { margin-top: 20px; }
+.caja-seccion h2 {
+  margin: 0 0 12px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+/* Controles en fila (variable arriba, profundidad abajo del gráfico) */
+.fila-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+}
+.fila-controles label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+.fila-controles > div { flex: 0 1 300px; }
+.fila-controles > .corto { flex: 0 1 140px; }
+.fila-controles > .boton { flex: 0 0 auto; }
+.fila-controles button { width: auto; }
+#secGrafico { height: 580px; margin: 12px 0; }
+#secEstado, #secResumen { color: var(--texto-suave); font-family: Arial, Helvetica, sans-serif; font-size: 0.85rem; margin-top: 8px; }
+#secMensaje { color: var(--error); font-family: Arial, Helvetica, sans-serif; font-size: 0.9rem; margin-top: 8px; }
+.nota-seccion {
+  margin: 14px 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
 footer {
   margin-top: 28px;
   font-family: Arial, Helvetica, sans-serif;
@@ -166,4 +199,5 @@ footer {
   #grafico { height: 520px; }
   .zona-perfil { grid-template-columns: 1fr; }
   .lateral { order: -1; }   /* controles arriba del gráfico */
+  #secGrafico { height: 440px; }
 }

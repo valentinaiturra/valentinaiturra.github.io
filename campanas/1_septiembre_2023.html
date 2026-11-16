@@ -15,8 +15,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <!-- SheetJS: lee los Excel directamente en el navegador -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Plotly (versión "basic", solo líneas y puntos): gráfico del perfil -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly-basic.min.js"></script>
+  <!-- Plotly (versión "cartesian": líneas, puntos y contornos): perfil y sección vertical -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly-cartesian.min.js"></script>
   <!-- Estilo compartido por todas las páginas de campaña -->
   <link rel="stylesheet" href="visor_campana.css">
 </head>
@@ -75,13 +75,53 @@
       </div>
     </div>
 
+    <!-- ====== SECCIÓN VERTICAL ====== -->
+    <div class="caja caja-seccion">
+      <h2>Sección vertical a lo largo del fiordo</h2>
+
+      <div class="fila-controles">
+        <div>
+          <label for="secVariable">Variable</label>
+          <select id="secVariable"></select>
+        </div>
+      </div>
+
+      <div id="secGrafico"></div>
+
+      <!-- Rango de profundidad de la sección: casilla vacía = sin límite por ese lado -->
+      <div class="fila-controles">
+        <div class="corto">
+          <label for="secDesde">Desde [m]</label>
+          <input type="number" id="secDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+        </div>
+        <div class="corto">
+          <label for="secHasta">Hasta [m]</label>
+          <input type="number" id="secHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
+        </div>
+        <div class="boton">
+          <button type="button" id="secTodo">Toda la columna</button>
+        </div>
+      </div>
+
+      <div id="secEstado"></div>
+      <div id="secResumen"></div>
+      <div id="secMensaje"></div>
+
+      <p class="nota-seccion">
+        Desde la boca (E01) hacia la cabeza del fiordo (E17), sin el seno Magdalena (E09, E10) ni el canal Jacaf (E13, E14).
+        Para dibujar la sección, cada perfil se promedia cada 1 m y se interpola linealmente entre estaciones vecinas;
+        las líneas punteadas marcan las estaciones y la zona gris está bajo la profundidad máxima medida.
+      </p>
+    </div>
+
     <footer>
-      Datos sin promediar, tal como salen de los archivos CTD (bajada). Usa el ícono de cámara del gráfico para descargarlo en PNG.
+      Perfiles: datos sin promediar, tal como salen de los archivos CTD (bajada). Usa el ícono de cámara de cada gráfico para descargarlo en PNG.
     </footer>
   </div>
 
   <!-- La única línea que cambia entre páginas de campaña: qué campaña mostrar (id de datos/indice.json) -->
   <script>const CAMPANA_ID = "1_septiembre_2023";</script>
   <script src="visor_campana.js"></script>
+  <script src="seccion_campana.js"></script>
 </body>
 </html>

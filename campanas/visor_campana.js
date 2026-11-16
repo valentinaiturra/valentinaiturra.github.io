@@ -265,6 +265,12 @@ if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly ===
       const n = Object.keys(campana.archivos).length;
       document.getElementById("nEstaciones").textContent = `${n} estaciones`;
       dibujarEstaciones();
+      // Si la página también tiene sección vertical (seccion_campana.js), se inicia aquí
+      if (typeof iniciarSeccion === "function") {
+        iniciarSeccion().catch(err => {
+          document.getElementById("secMensaje").textContent = "No se pudo cargar la sección: " + err.message;
+        });
+      }
     })
     .catch(e => {
       document.getElementById("sinEstacion").textContent =
