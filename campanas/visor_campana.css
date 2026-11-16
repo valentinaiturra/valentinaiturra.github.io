@@ -36,33 +36,58 @@ body {
   padding: 0 16px 48px;
 }
 
-/* ====== ENCABEZADO CON PAISAJE DE FIORDO ====== */
+/* ====== ENCABEZADO ====== */
 .cabecera {
   position: relative;
-  background: linear-gradient(to bottom, var(--fondo) 20%, var(--cielo-horizonte) 100%);
+  overflow: hidden;
   margin-bottom: 24px;
+  border-bottom: 2px solid var(--mar-superficie);   /* línea celeste, guiño a la superficie de la línea de tiempo */
+}
+/* Isobatas decorativas de fondo (isobatas.svg): tenues y desvanecidas hacia la izquierda, donde va el título */
+.cabecera::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("isobatas.svg") right center / cover no-repeat;
+  opacity: 0.3;
+  -webkit-mask-image: linear-gradient(to right, transparent 25%, #000 70%);
+          mask-image: linear-gradient(to right, transparent 25%, #000 70%);
+  pointer-events: none;
 }
 .cabecera-texto {
-  position: relative;
-  z-index: 1;                   /* el texto queda delante de los cerros */
+  position: relative;            /* delante de las isobatas */
   max-width: 1280px;
   margin: 0 auto;
-  padding: 20px 16px 56px;
-}
-.cabecera-cerros {
-  position: absolute;
-  left: 0;
-  bottom: 14px;                 /* apoyados sobre la franja de agua */
-  width: 100%;
-  height: 90px;
-}
-.cabecera-agua {
-  position: relative;
-  height: 14px;
-  background: linear-gradient(to bottom, var(--mar-superficie), var(--mar-fondo));
-  border-top: 2px solid #ffffff;   /* brillo de la superficie, como en la línea de tiempo */
+  padding: 20px 16px 22px;
 }
 .cabecera .subtitulo { margin-bottom: 0; }
+
+/* Etiqueta de estación del año (hemisferio sur), colores Okabe-Ito aptos para daltonismo */
+.temporada {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 3px 12px;
+  border: 1px solid;
+  border-radius: 999px;
+  vertical-align: middle;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+.temporada::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.temporada.primavera { color: #00664a; background: #e3f3ed; border-color: #009e73; }
+.temporada.verano    { color: #8a5a00; background: #fdf2d8; border-color: #e69f00; }
+.temporada.otono     { color: #9a3f00; background: #fbe7d9; border-color: #d55e00; }
+.temporada.invierno  { color: #00507d; background: #e0edf6; border-color: #0072b2; }
 
 .volver {
   display: inline-block;

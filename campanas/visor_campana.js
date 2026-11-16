@@ -107,6 +107,27 @@ async function cargarTabla(ruta) {
   return cacheTablas[ruta];
 }
 
+// ====== ESTACIÓN DEL AÑO (hemisferio sur, estaciones meteorológicas) ======
+// Verano: dic–feb · Otoño: mar–may · Invierno: jun–ago · Primavera: sep–nov
+function temporadaAustral(mes) {
+  if (mes === 12 || mes <= 2) return { clase: "verano", texto: "Verano austral" };
+  if (mes <= 5) return { clase: "otono", texto: "Otoño austral" };
+  if (mes <= 8) return { clase: "invierno", texto: "Invierno austral" };
+  return { clase: "primavera", texto: "Primavera austral" };
+}
+
+function mostrarTemporada() {
+  const etiquetaTemporada = document.getElementById("temporada");
+  if (!etiquetaTemporada) return;
+  // Mes de la campaña, tomado de la fecha del primer lance (ej. "2023-09-12" → 9)
+  const fecha = Object.values(campana.archivos).map(a => a.fecha).find(Boolean);
+  if (!fecha) return;
+  const t = temporadaAustral(Number(fecha.split("-")[1]));
+  etiquetaTemporada.textContent = t.texto;
+  etiquetaTemporada.classList.add(t.clase);
+  etiquetaTemporada.hidden = false;
+}
+
 // ====== PANEL ======
 // Fecha del índice (2023-09-12) en formato chileno (12-09-2023)
 const fechaChilena = f => f ? f.split("-").reverse().join("-") : "";
@@ -274,6 +295,7 @@ if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly ===
       if (!campana) throw new Error(`La campaña "${CAMPANA_ID}" no está en el índice`);
       const n = Object.keys(campana.archivos).length;
       document.getElementById("nEstaciones").textContent = `${n} estaciones`;
+      mostrarTemporada();
       dibujarEstaciones();
       // Si la página también tiene sección vertical (seccion_campana.js), se inicia aquí
       if (typeof iniciarSeccion === "function") {
