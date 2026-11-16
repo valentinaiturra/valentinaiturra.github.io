@@ -8,6 +8,20 @@ const RAIZ = "../";                                   // las páginas están en 
 const ARCHIVO_INDICE = RAIZ + "datos/indice.json";
 const COLUMNA_PROFUNDIDAD = "Depth";
 const COLUMNAS_EXCLUIDAS = ["Time", COLUMNA_PROFUNDIDAD];   // no aparecen en el menú de variables
+
+// Variables que aparecen en los menús del perfil y de la sección, en este orden.
+// Para agregar o quitar una, edita solo esta lista (usa el nombre de la columna del Excel).
+// "Temperature" es la primera columna de temperatura (no la del sensor de oxígeno).
+const VARIABLES_MOSTRADAS = [
+  "Temperature",
+  "Chlorophyll a",
+  "Dissolved O₂ concentration",
+  "Salinity",
+  "Dissolved O₂ saturation"
+];
+// Variables de la lista que tienen al menos un dato en una tabla
+const variablesDisponibles = tabla =>
+  VARIABLES_MOSTRADAS.filter(n => tabla.columnas[n] && tabla.columnas[n].some(v => v !== null));
 const COLOR_PERFIL = "#1b6ca8";
 
 // Letras de los gráficos (perfil y sección), coherentes con la línea de tiempo.
@@ -169,13 +183,11 @@ async function actualizarPerfil() {
   // Si mientras cargaba se eligió otra estación, no dibujar esta
   if (estacionPedida !== estacionActual) return;
 
-  // Menú de variables: columnas con al menos un número, conservando la elección anterior
+  // Menú de variables: solo las de VARIABLES_MOSTRADAS con datos, conservando la elección anterior
   const selVariable = document.getElementById("selVariable");
-  const variablePrevia = selVariable.value || "Temperature";
+  const variablePrevia = selVariable.value || VARIABLES_MOSTRADAS[0];
   selVariable.innerHTML = "";
-  tabla.nombres
-    .filter(n => n && !COLUMNAS_EXCLUIDAS.includes(n) && tabla.columnas[n].some(v => v !== null))
-    .forEach(n => selVariable.add(new Option(etiqueta(n), n)));
+  variablesDisponibles(tabla).forEach(n => selVariable.add(new Option(etiqueta(n), n)));
   if ([...selVariable.options].some(o => o.value === variablePrevia)) selVariable.value = variablePrevia;
 
   dibujarPerfil(tabla, archivo);

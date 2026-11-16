@@ -18,7 +18,9 @@
   <!-- Plotly (versión "cartesian": líneas, puntos y contornos): perfil y sección vertical -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly-cartesian.min.js"></script>
   <!-- Estilo compartido por todas las páginas de campaña -->
-  <link rel="stylesheet" href="visor_campana.css">
+  <!-- "?v=2": versión de los archivos compartidos. Súbela (v=3, v=4…) cada vez que cambien,
+       así el navegador descarga la versión nueva en vez de usar una copia guardada. -->
+  <link rel="stylesheet" href="visor_campana.css?v=2">
 </head>
 
 <body>
@@ -125,7 +127,7 @@
 
   <!-- La única línea que cambia entre páginas de campaña: qué campaña mostrar (id de datos/indice.json) -->
   <script>const CAMPANA_ID = "1_septiembre_2023";</script>
-  <script src="visor_campana.js"></script>
-  <script src="seccion_campana.js"></script>
+  <script src="visor_campana.js?v=2"></script>
+  <script src="seccion_campana.js?v=2"></script>
 </body>
 </html>

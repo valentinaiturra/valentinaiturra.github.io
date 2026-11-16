@@ -325,14 +325,13 @@ function dibujarSeccion() {
 
 // ====== INICIO (lo llama visor_campana.js cuando ya cargó el índice) ======
 async function iniciarSeccion() {
-  // Las variables se toman de las columnas de un Excel del transecto (todos tienen las mismas)
+  // Variables del menú: las de VARIABLES_MOSTRADAS (definidas en visor_campana.js), en el mismo orden,
+  // revisadas en un Excel del transecto (todos tienen las mismas columnas)
   const primera = ESTACIONES_TRANSECTO.find(id => campana.archivos[id]);
   const tabla = await cargarTabla(campana.archivos[primera].ruta);
   const selVariable = document.getElementById("secVariable");
-  tabla.nombres
-    .filter(n => n && !COLUMNAS_EXCLUIDAS.includes(n) && tabla.columnas[n].some(v => v !== null))
-    .forEach(n => selVariable.add(new Option(etiqueta(n), n)));
-  selVariable.value = "Temperature";
+  variablesDisponibles(tabla).forEach(n => selVariable.add(new Option(etiqueta(n), n)));
+  selVariable.value = VARIABLES_MOSTRADAS[0];
 
   selVariable.addEventListener("change", calcularSeccion);
   document.getElementById("secDesde").addEventListener("input", dibujarSeccion);
