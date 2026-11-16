@@ -339,6 +339,11 @@ function dibujarSeccion() {
   }));
 
   const sufijo = hayRango ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "";
+  // Para el botón "Descargar imagen": en el PNG el título incluye la campaña
+  seccionDescarga = {
+    titulo: `${nombreSinUnidad} · ${campana.nombre}`,
+    nombreArchivo: `seccion_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}${sufijo}`
+  };
 
   Plotly.react("secGrafico", trazos, {
     title: {
@@ -353,26 +358,23 @@ function dibujarSeccion() {
       title: { text: "Distancia desde E01 [km]", font: LETRA_EJE },
       tickfont: LETRA_NUMEROS,
       range: [0, distancias[distancias.length - 1]],   // siempre E01 a E17
-      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4
+      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4,
+      fixedrange: true                // sin zoom con el mouse
     },
     yaxis: {
       title: { text: "Profundidad [m]", font: LETRA_EJE },
       tickfont: LETRA_NUMEROS,
       range: [ejeAbajo, ejeArriba],   // invertido: la profundidad aumenta hacia abajo
-      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4
+      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4,
+      fixedrange: true
     },
     annotations: nombresEstaciones,
     hoverlabel: { font: { family: LETRA_GRAFICO.family, size: 13 } },
     font: LETRA_GRAFICO
   }, {
     responsive: true,
-    displaylogo: false,
-    locale: "es",
-    toImageButtonOptions: {
-      format: "png",
-      filename: `seccion_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}${sufijo}`,
-      scale: 3
-    }
+    displayModeBar: false,            // sin barra de herramientas (zoom, casita, etc.)
+    locale: "es"
   });
 
   const textoRango = hayRango
@@ -381,6 +383,28 @@ function dibujarSeccion() {
     `${estaciones.length} estaciones · ${(grilla.x[grilla.x.length - 1] - grilla.x[0]).toFixed(1)} km de transecto · ` +
     `profundidad máxima ${grilla.profMax.toFixed(0)} m${textoRango}` +
     (sinDatos.length ? ` · Sin datos de esta variable: ${sinDatos.join(", ")}` : "");
+}
+
+// ====== DESCARGA DE LA SECCIÓN EN PNG ======
+// Se exporta tal como se ve, pero con el título "Variable · Campaña"
+let seccionDescarga = null;   // { titulo, nombreArchivo } de la sección dibujada
+
+async function descargarSeccion() {
+  const grafico = document.getElementById("secGrafico");
+  if (!seccion || !seccionDescarga || !grafico.data) return;   // sin gráfico dibujado (ej. rango sin datos)
+  const url = await Plotly.toImage({
+    data: grafico.data,
+    layout: {
+      ...grafico.layout,
+      title: { ...grafico.layout.title, text: seccionDescarga.titulo }
+    }
+  }, { format: "png", width: grafico._fullLayout.width, height: grafico._fullLayout.height, scale: 3 });
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = seccionDescarga.nombreArchivo + ".png";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
 }
 
 // ====== INICIO (lo llama visor_campana.js cuando ya cargó el índice) ======
@@ -396,6 +420,7 @@ async function iniciarSeccion() {
   selVariable.addEventListener("change", calcularSeccion);
   document.getElementById("secDesde").addEventListener("input", dibujarSeccion);
   document.getElementById("secHasta").addEventListener("input", dibujarSeccion);
+  document.getElementById("secDescargar").addEventListener("click", descargarSeccion);
   document.getElementById("secTodo").addEventListener("click", () => {
     document.getElementById("secDesde").value = "";
     document.getElementById("secHasta").value = "";

@@ -229,6 +229,8 @@ function dibujarPerfil(tabla, archivo) {
   const nombreArchivo = `perfil_${estacionActual}_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}` +
     (hayRango ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "");
 
+  // Sin título en la página (la estación ya aparece en la columna derecha);
+  // el título solo se agrega a la imagen descargada (ver descargarPerfil)
   Plotly.react("grafico", [{
     x, y,
     type: "scatter",
@@ -236,9 +238,7 @@ function dibujarPerfil(tabla, archivo) {
     line: { color: COLOR_PERFIL, width: 1.5 },
     hovertemplate: `${etiqueta(variable)}: %{x:.3f}<br>Profundidad: %{y:.2f} m<extra></extra>`
   }], {
-    // Título pegado arriba para que no choque con el nombre del eje superior
-    title: { text: titulo, font: LETRA_TITULO, y: 0.98, yanchor: "top" },
-    margin: { l: 72, r: 20, t: 115, b: 30 },
+    margin: { l: 72, r: 20, t: 62, b: 24 },
     paper_bgcolor: "#ffffff",
     plot_bgcolor: "#ffffff",
     xaxis: {
@@ -246,27 +246,31 @@ function dibujarPerfil(tabla, archivo) {
       tickfont: LETRA_NUMEROS,
       side: "top",                 // la variable arriba, como en los perfiles oceanográficos
       gridcolor: "#e6e3db",
-      zeroline: false
+      zeroline: false,
+      fixedrange: true             // sin zoom con el mouse
     },
     yaxis: {
       title: { text: etiqueta(COLUMNA_PROFUNDIDAD), font: LETRA_EJE },
       tickfont: LETRA_NUMEROS,
       autorange: "reversed",       // la profundidad aumenta hacia abajo
       gridcolor: "#e6e3db",
-      zeroline: false
+      zeroline: false,
+      fixedrange: true
     },
     hoverlabel: { font: { family: LETRA_GRAFICO.family, size: 13 } },
     font: LETRA_GRAFICO
   }, {
     responsive: true,
-    displaylogo: false,
-    locale: "es",
-    toImageButtonOptions: { format: "png", filename: nombreArchivo, scale: 3 }
+    displayModeBar: false,         // sin barra de herramientas (zoom, casita, etc.)
+    locale: "es"
   });
+  perfilActual = { titulo, nombreArchivo };
 
+  // Resumen centrado, un dato por línea
   const resumen = document.getElementById("resumen");
   if (x.length === 0) {
     resumen.textContent = "";
+    perfilActual = null;
     document.getElementById("mensaje").textContent = hayRango
       ? `No hay datos de esta variable entre ${textoRango}.`
       : "Esta variable no tiene datos en este archivo.";
@@ -275,10 +279,37 @@ function dibujarPerfil(tabla, archivo) {
   const minimo = x.reduce((a, b) => Math.min(a, b));
   const maximo = x.reduce((a, b) => Math.max(a, b));
   const profMax = y.reduce((a, b) => Math.max(a, b));
-  resumen.textContent =
-    `${x.length} mediciones` + (hayRango ? ` entre ${textoRango}` : "") +
-    ` · rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)} · profundidad máxima ${profMax.toFixed(1)} m` +
-    (archivo.nota ? ` · Nota del archivo: ${archivo.nota}` : "");
+  resumen.textContent = [
+    `${x.length.toLocaleString("es-CL")} mediciones`,
+    hayRango ? `entre ${textoRango}` : null,
+    `rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)}`,
+    `profundidad máxima ${profMax.toFixed(1)} m`,
+    archivo.nota ? `Nota del archivo: ${archivo.nota}` : null
+  ].filter(Boolean).join("\n");
+}
+
+// ====== DESCARGA DEL PERFIL EN PNG ======
+// Se exporta el gráfico tal como se ve, más un título con la estación y la campaña
+let perfilActual = null;   // { titulo, nombreArchivo } del perfil dibujado
+
+async function descargarPerfil() {
+  const grafico = document.getElementById("grafico");
+  if (!perfilActual || !grafico.data) return;   // sin gráfico dibujado
+  const ancho = grafico._fullLayout.width, alto = grafico._fullLayout.height;
+  const url = await Plotly.toImage({
+    data: grafico.data,
+    layout: {
+      ...grafico.layout,
+      title: { text: perfilActual.titulo, font: LETRA_TITULO, y: 0.985, yanchor: "top" },
+      margin: { ...grafico.layout.margin, t: 110 }
+    }
+  }, { format: "png", width: ancho, height: alto + 48, scale: 3 });
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = perfilActual.nombreArchivo + ".png";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
 }
 
 // ====== INICIO ======
@@ -286,6 +317,7 @@ document.getElementById("selVariable").addEventListener("change", actualizarPerf
 // El perfil se redibuja mientras escribes (el Excel ya está guardado en memoria, no se descarga de nuevo)
 document.getElementById("profDesde").addEventListener("input", actualizarPerfil);
 document.getElementById("profHasta").addEventListener("input", actualizarPerfil);
+document.getElementById("btnDescargar").addEventListener("click", descargarPerfil);
 document.getElementById("btnTodo").addEventListener("click", () => {
   document.getElementById("profDesde").value = "";
   document.getElementById("profHasta").value = "";

@@ -20,7 +20,7 @@
   <!-- Estilo compartido por todas las páginas de campaña -->
   <!-- "?v=2": versión de los archivos compartidos. Súbela (v=3, v=4…) cada vez que cambien,
        así el navegador descarga la versión nueva en vez de usar una copia guardada. -->
-  <link rel="stylesheet" href="visor_campana.css?v=2">
+  <link rel="stylesheet" href="visor_campana.css?v=3">
 </head>
 
 <body>
@@ -79,6 +79,8 @@
 
             <div id="resumen"></div>
             <div id="mensaje"></div>
+
+            <button type="button" id="btnDescargar" class="boton-principal">Descargar imagen</button>
           </div>
         </div>
       </div>
@@ -107,6 +109,9 @@
         <div class="boton">
           <button type="button" id="secTodo">Toda la columna</button>
         </div>
+        <div class="boton">
+          <button type="button" id="secDescargar" class="boton-principal">Descargar imagen</button>
+        </div>
       </div>
 
       <div id="secEstado"></div>
@@ -121,13 +126,13 @@
     </div>
 
     <footer>
-      Perfiles: datos sin promediar, tal como salen de los archivos CTD (bajada). Usa el ícono de cámara de cada gráfico para descargarlo en PNG.
+      Perfiles: datos sin promediar, tal como salen de los archivos CTD (bajada).
     </footer>
   </div>
 
   <!-- La única línea que cambia entre páginas de campaña: qué campaña mostrar (id de datos/indice.json) -->
   <script>const CAMPANA_ID = "1_septiembre_2023";</script>
-  <script src="visor_campana.js?v=2"></script>
-  <script src="seccion_campana.js?v=3"></script>
+  <script src="visor_campana.js?v=3"></script>
+  <script src="seccion_campana.js?v=4"></script>
 </body>
 </html>

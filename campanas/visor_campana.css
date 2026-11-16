@@ -192,8 +192,24 @@ select:focus-visible, input[type="number"]:focus-visible, button:focus-visible {
   padding: 24px;
 }
 
-#mensaje { color: var(--error); font-size: 0.9rem; margin-top: 8px; }
-#resumen { color: var(--texto-suave); font-size: 0.85rem; margin-top: 8px; }
+#mensaje { color: var(--error); font-size: 0.9rem; margin-top: 8px; text-align: center; }
+/* Resumen del perfil: centrado, un dato por línea */
+#resumen {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin-top: 8px;
+  text-align: center;
+  white-space: pre-line;          /* respeta los saltos de línea */
+}
+
+/* Botón destacado (Descargar imagen): relleno azul marino */
+.boton-principal {
+  margin-top: 18px;
+  background: var(--acento);
+  color: var(--blanco);
+}
+.boton-principal:hover { background: #072636; color: var(--blanco); }
 
 /* Etiqueta permanente con el nombre de cada estación */
 .etiqueta-estacion {
