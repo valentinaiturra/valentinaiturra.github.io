@@ -10,6 +10,13 @@ const COLUMNA_PROFUNDIDAD = "Depth";
 const COLUMNAS_EXCLUIDAS = ["Time", COLUMNA_PROFUNDIDAD];   // no aparecen en el menú de variables
 const COLOR_PERFIL = "#1b6ca8";
 
+// Letras de los gráficos (perfil y sección), coherentes con la línea de tiempo.
+// Nota: al descargar el PNG, si el navegador no incluye la fuente Fraunces, el título sale en Georgia.
+const LETRA_TITULO = { family: "Fraunces, Georgia, serif", size: 19, color: "#0e3b52" };
+const LETRA_GRAFICO = { family: "'Segoe UI', Roboto, Arial, Helvetica, sans-serif", size: 13, color: "#22262b" };
+const LETRA_EJE = { size: 14, color: "#22262b" };      // nombre de cada eje
+const LETRA_NUMEROS = { size: 12, color: "#4a5158" };  // números de los ejes
+
 // Nombres en español con unidades para cada columna del Excel (iguales a visor_ctd.html).
 // "Temperature (2)" es la segunda columna llamada "Temperature" del Excel (sensor de oxígeno).
 const NOMBRES = {
@@ -197,23 +204,26 @@ function dibujarPerfil(tabla, archivo) {
     hovertemplate: `${etiqueta(variable)}: %{x:.3f}<br>Profundidad: %{y:.2f} m<extra></extra>`
   }], {
     // Título pegado arriba para que no choque con el nombre del eje superior
-    title: { text: titulo, font: { family: "Georgia, serif", size: 16 }, y: 0.98, yanchor: "top" },
-    margin: { l: 70, r: 20, t: 110, b: 30 },
+    title: { text: titulo, font: LETRA_TITULO, y: 0.98, yanchor: "top" },
+    margin: { l: 72, r: 20, t: 115, b: 30 },
     paper_bgcolor: "#ffffff",
     plot_bgcolor: "#ffffff",
     xaxis: {
-      title: { text: etiqueta(variable) },
+      title: { text: etiqueta(variable), font: LETRA_EJE },
+      tickfont: LETRA_NUMEROS,
       side: "top",                 // la variable arriba, como en los perfiles oceanográficos
       gridcolor: "#e6e3db",
       zeroline: false
     },
     yaxis: {
-      title: { text: etiqueta(COLUMNA_PROFUNDIDAD) },
+      title: { text: etiqueta(COLUMNA_PROFUNDIDAD), font: LETRA_EJE },
+      tickfont: LETRA_NUMEROS,
       autorange: "reversed",       // la profundidad aumenta hacia abajo
       gridcolor: "#e6e3db",
       zeroline: false
     },
-    font: { family: "Arial, Helvetica, sans-serif", color: "#22262b" }
+    hoverlabel: { font: { family: LETRA_GRAFICO.family, size: 13 } },
+    font: LETRA_GRAFICO
   }, {
     responsive: true,
     displaylogo: false,

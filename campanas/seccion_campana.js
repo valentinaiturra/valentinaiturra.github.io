@@ -235,10 +235,17 @@ function dibujarSeccion() {
       x: grilla.x, y: yRec, z: zRec,
       colorscale: escalaColor(variable),
       ncontours: 20,
-      contours: { coloring: "heatmap", showlabels: true, labelfont: { size: 10, color: "#ffffff" } },
+      contours: {
+        coloring: "heatmap", showlabels: true,
+        labelfont: { family: LETRA_GRAFICO.family, size: 11, color: "#ffffff" }
+      },
       line: { width: 0.5, color: "rgba(0,0,0,0.35)" },
       connectgaps: false,
-      colorbar: { title: { text: nombreVar, side: "right" }, thickness: 16 },
+      colorbar: {
+        title: { text: nombreVar, side: "right", font: LETRA_EJE },
+        tickfont: LETRA_NUMEROS,
+        thickness: 16, outlinewidth: 0
+      },
       hovertemplate: `Distancia: %{x:.1f} km<br>Profundidad: %{y:.0f} m<br>${nombreVar}: %{z:.3f}<extra></extra>`
     },
     // Zona bajo la profundidad máxima medida
@@ -268,7 +275,7 @@ function dibujarSeccion() {
   const nombresEstaciones = estaciones.map(e => ({
     x: e.dist, y: 1, xref: "x", yref: "paper", yanchor: "bottom",
     text: e.id, showarrow: false, textangle: -90,
-    font: { size: 11, color: "#22262b" }
+    font: { family: LETRA_GRAFICO.family, size: 12, color: "#0e3b52" }
   }));
 
   const sufijo = hayRango ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "";
@@ -276,24 +283,27 @@ function dibujarSeccion() {
   Plotly.react("secGrafico", trazos, {
     title: {
       text: `${nombreVar} · ${campana.nombre}`,
-      font: { family: "Georgia, serif", size: 16 },
+      font: LETRA_TITULO,
       y: 0.98, yanchor: "top"
     },
-    margin: { l: 70, r: 20, t: 90, b: 60 },
+    margin: { l: 72, r: 20, t: 95, b: 62 },
     paper_bgcolor: "#ffffff",
     plot_bgcolor: "#ffffff",
     xaxis: {
-      title: { text: "Distancia desde E01 [km]" },
+      title: { text: "Distancia desde E01 [km]", font: LETRA_EJE },
+      tickfont: LETRA_NUMEROS,
       range: [0, distancias[distancias.length - 1]],   // siempre E01 a E17
-      zeroline: false, showgrid: false
+      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4
     },
     yaxis: {
-      title: { text: "Profundidad [m]" },
+      title: { text: "Profundidad [m]", font: LETRA_EJE },
+      tickfont: LETRA_NUMEROS,
       range: [ejeAbajo, ejeArriba],   // invertido: la profundidad aumenta hacia abajo
-      zeroline: false, showgrid: false
+      zeroline: false, showgrid: false, ticks: "outside", ticklen: 4
     },
     annotations: nombresEstaciones,
-    font: { family: "Arial, Helvetica, sans-serif", color: "#22262b" }
+    hoverlabel: { font: { family: LETRA_GRAFICO.family, size: 13 } },
+    font: LETRA_GRAFICO
   }, {
     responsive: true,
     displaylogo: false,

@@ -1,15 +1,19 @@
 /* ====== ESTILO COMPARTIDO DE LAS PÁGINAS DE CAMPAÑA ======
    Mismo diseño que visor_ctd.html, pero sin menú de campaña. */
 
+/* Colores coherentes con la línea de tiempo (linea_tiempo.html) */
 :root {
   --fondo: #f6f4ef;
   --texto: #22262b;
   --texto-suave: #5c636b;
-  --acento: #1f5f5b;
-  --linea: #dcd8cd;
+  --acento: #0e3b52;            /* azul marino de la línea de tiempo */
+  --linea: #e1ddd3;
   --blanco: #ffffff;
   --error: #b3261e;
   --resalte: #e0a526;
+  --cielo-horizonte: #e6eef1;
+  --mar-superficie: #b3d4de;
+  --mar-fondo: #6f9fb2;
 }
 
 * { box-sizing: border-box; }
@@ -29,10 +33,37 @@ body {
 .contenedor {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 0 16px 48px;
 }
 
-/* ====== ENCABEZADO ====== */
+/* ====== ENCABEZADO CON PAISAJE DE FIORDO ====== */
+.cabecera {
+  position: relative;
+  background: linear-gradient(to bottom, var(--fondo) 20%, var(--cielo-horizonte) 100%);
+  margin-bottom: 24px;
+}
+.cabecera-texto {
+  position: relative;
+  z-index: 1;                   /* el texto queda delante de los cerros */
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 16px 56px;
+}
+.cabecera-cerros {
+  position: absolute;
+  left: 0;
+  bottom: 14px;                 /* apoyados sobre la franja de agua */
+  width: 100%;
+  height: 90px;
+}
+.cabecera-agua {
+  position: relative;
+  height: 14px;
+  background: linear-gradient(to bottom, var(--mar-superficie), var(--mar-fondo));
+  border-top: 2px solid #ffffff;   /* brillo de la superficie, como en la línea de tiempo */
+}
+.cabecera .subtitulo { margin-bottom: 0; }
+
 .volver {
   display: inline-block;
   margin-bottom: 10px;
@@ -67,9 +98,10 @@ h1 {
 .caja {
   background: var(--blanco);
   border: 1px solid var(--linea);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 16px;
   min-width: 0;
+  box-shadow: 0 1px 3px rgba(14, 59, 82, 0.06), 0 4px 14px rgba(14, 59, 82, 0.05);
 }
 
 #mapa { height: 640px; border-radius: 6px; }
@@ -80,7 +112,7 @@ h1 {
   grid-template-columns: minmax(0, 1fr) 200px;
   gap: 16px;
 }
-.panel h2 { margin: 0 0 2px; font-size: 1.4rem; }
+.panel h2 { margin: 0 0 2px; font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 1.4rem; }
 .info {
   color: var(--texto-suave);
   font-family: Arial, Helvetica, sans-serif;
@@ -155,7 +187,7 @@ select:focus-visible, input[type="number"]:focus-visible, button:focus-visible {
 /* ====== SECCIÓN VERTICAL (debajo del mapa y el perfil) ====== */
 .caja-seccion { margin-top: 20px; }
 .caja-seccion h2 {
-  margin: 0 0 12px;
+  margin: 0 0 4px;
   font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
   font-size: 1.4rem;
