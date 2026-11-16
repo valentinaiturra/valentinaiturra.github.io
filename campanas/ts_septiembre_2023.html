@@ -53,10 +53,8 @@
         <!-- Controles (derecha) -->
         <div class="lateral">
           <div class="campo">
-            <label for="selEstacion">Resaltar estación</label>
-            <select id="selEstacion">
-              <option value="">Ninguna (color = profundidad)</option>
-            </select>
+            <label for="selEstacion">Estación</label>
+            <select id="selEstacion"></select>
           </div>
 
           <!-- Rango de profundidad: casilla vacía = sin límite por ese lado -->
@@ -100,8 +98,8 @@
       [0.0, "#fdfecc"], [0.2, "#9ad7a7"], [0.4, "#4fa9a6"],
       [0.6, "#3c75a1"], [0.8, "#3f4785"], [1.0, "#281a2c"]
     ];
-    const COLOR_RESALTE = "#d55e00";   // naranjo-bermellón (apto daltonismo)
-    const COLOR_RESTO = "#b9bdc2";
+    const TAMANO_PUNTO = 6;            // diámetro de los puntos [px]
+    const BORDE_PUNTO = { color: "#000000", width: 0.6 };   // borde negro: se ven hasta los puntos más claros
 
     // ====== DENSIDAD σt (UNESCO EOS-80, presión 0) ======
     // S: salinidad práctica [PSU], T: temperatura [°C]. Devuelve densidad - 1000 [kg/m³].
@@ -212,13 +210,14 @@
     // ====== DIBUJO ======
     function dibujar() {
       const { desde, hasta } = leerRango();
-      const resaltar = document.getElementById("selEstacion").value;
+      const estacion = document.getElementById("selEstacion").value;
       const mensaje = document.getElementById("mensaje");
       mensaje.textContent = "";
 
-      // Índices de los puntos dentro del rango de profundidad
+      // Índices de los puntos de la estación elegida dentro del rango de profundidad
       const dentro = [];
       for (let i = 0; i < puntos.S.length; i++) {
+        if (puntos.est[i] !== estacion) continue;
         const p = puntos.prof[i];
         if (desde !== null && p < desde) continue;
         if (hasta !== null && p > hasta) continue;
@@ -229,56 +228,38 @@
       const plantillaHover =
         "%{customdata[0]} · %{customdata[1]:.1f} m<br>S: %{x:.3f} PSU<br>T: %{y:.3f} °C<br>σt: %{customdata[2]:.2f} kg/m³<extra></extra>";
 
+      // Escala de color fija para toda la campaña: el mismo color = la misma profundidad en todas las estaciones
       const profMaxTotal = maximo(puntos.prof);
-      let trazasDatos;
+      const pasoTicks = profMaxTotal > 200 ? 50 : 25;
+      const ticks = [];
+      for (let v = 0; v <= profMaxTotal; v += pasoTicks) ticks.push(v);
 
-      if (!resaltar) {
-        // Color = profundidad. Se usa -profundidad para que la barra de color tenga la superficie arriba.
-        const pasoTicks = profMaxTotal > 200 ? 50 : 25;
-        const ticks = [];
-        for (let v = 0; v <= profMaxTotal; v += pasoTicks) ticks.push(v);
-        trazasDatos = [{
-          x: tomar(dentro, "S"), y: tomar(dentro, "T"),
-          customdata: datosHover(dentro),
-          type: "scattergl", mode: "markers",
-          marker: {
-            size: 3,
-            color: dentro.map(i => -puntos.prof[i]),
-            cmin: -profMaxTotal, cmax: 0,
-            colorscale: PALETA_DEEP.map(([v, c]) => [1 - v, c]).reverse(),   // 0 m claro, fondo oscuro
-            colorbar: {
-              title: { text: "Profundidad [m]", side: "right" },
-              tickvals: ticks.map(v => -v), ticktext: ticks.map(String),
-              thickness: 14, len: 0.9
-            }
-          },
-          hovertemplate: plantillaHover, showlegend: false
-        }];
-      } else {
-        const resto = dentro.filter(i => puntos.est[i] !== resaltar);
-        const elegida = dentro.filter(i => puntos.est[i] === resaltar);
-        trazasDatos = [
-          {
-            x: tomar(resto, "S"), y: tomar(resto, "T"), customdata: datosHover(resto),
-            type: "scattergl", mode: "markers", name: "Otras estaciones",
-            marker: { size: 3, color: COLOR_RESTO, opacity: 0.5 },
-            hovertemplate: plantillaHover
-          },
-          {
-            x: tomar(elegida, "S"), y: tomar(elegida, "T"), customdata: datosHover(elegida),
-            type: "scattergl", mode: "markers", name: resaltar,
-            marker: { size: 4, color: COLOR_RESALTE },
-            hovertemplate: plantillaHover
+      // Color = profundidad. Se usa -profundidad para que la barra de color tenga la superficie arriba.
+      const trazasDatos = [{
+        x: tomar(dentro, "S"), y: tomar(dentro, "T"),
+        customdata: datosHover(dentro),
+        type: "scattergl", mode: "markers",
+        marker: {
+          size: TAMANO_PUNTO,
+          line: BORDE_PUNTO,
+          color: dentro.map(i => -puntos.prof[i]),
+          cmin: -profMaxTotal, cmax: 0,
+          colorscale: PALETA_DEEP.map(([v, c]) => [1 - v, c]).reverse(),   // 0 m claro, fondo oscuro
+          colorbar: {
+            title: { text: "Profundidad [m]", side: "right" },
+            tickvals: ticks.map(v => -v), ticktext: ticks.map(String),
+            thickness: 14, len: 0.9
           }
-        ];
-        if (elegida.length === 0) mensaje.textContent = `${resaltar} no tiene datos en ese rango de profundidad.`;
-      }
+        },
+        hovertemplate: plantillaHover, showlegend: false
+      }];
+      if (dentro.length === 0) mensaje.textContent = `${estacion} no tiene datos en ese rango de profundidad.`;
 
       const sufijo = (desde !== null || hasta !== null)
         ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "";
 
       Plotly.react("grafico", [...isopicnas.trazas, ...trazasDatos], {
-        title: { text: "Diagrama T-S · Septiembre 2023", font: { family: "Georgia, serif", size: 16 } },
+        title: { text: `Diagrama T-S · Estación ${estacion} · Septiembre 2023`, font: { family: "Georgia, serif", size: 16 } },
         margin: { l: 70, r: 20, t: 60, b: 60 },
         paper_bgcolor: "#ffffff",
         plot_bgcolor: "#ffffff",
@@ -292,14 +273,14 @@
         displaylogo: false,
         toImageButtonOptions: {
           format: "png", scale: 3,
-          filename: `diagrama_TS_${CAMPANA_ID}` + (resaltar ? `_${resaltar}` : "") + sufijo
+          filename: `diagrama_TS_${CAMPANA_ID}_${estacion}` + sufijo
         }
       });
 
       const textoRango = (desde !== null || hasta !== null)
         ? ` entre ${desde !== null ? desde : "superficie"} y ${hasta !== null ? hasta + " m" : "fondo"}` : "";
       document.getElementById("resumen").textContent =
-        `${dentro.length.toLocaleString("es-CL")} mediciones${textoRango}`;
+        `${estacion}: ${dentro.length.toLocaleString("es-CL")} mediciones${textoRango}`;
     }
 
     // ====== CARGA DE LAS 17 ESTACIONES ======
