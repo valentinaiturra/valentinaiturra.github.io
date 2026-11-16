@@ -20,19 +20,50 @@
   <!-- Estilo compartido por todas las páginas de campaña -->
   <!-- "?v=2": versión de los archivos compartidos. Súbela (v=3, v=4…) cada vez que cambien,
        así el navegador descarga la versión nueva en vez de usar una copia guardada. -->
-  <link rel="stylesheet" href="visor_campana.css?v=3">
+  <link rel="stylesheet" href="visor_campana.css?v=4">
 </head>
 
 <body>
   <!-- ====== ENCABEZADO ====== -->
   <header class="cabecera">
     <div class="cabecera-texto">
-      <a class="volver" href="../linea_tiempo.html">&larr; Línea de tiempo</a>
-      <!-- La etiqueta de estación del año se completa sola desde la fecha de la campaña -->
-      <h1>Septiembre 2023<span id="temporada" class="temporada" hidden></span></h1>
-      <p class="subtitulo">Campaña 1 · <span id="nEstaciones">17 estaciones</span> · Proyecto Fondecyt 1262020</p>
+      <div>
+        <a class="volver" href="../linea_tiempo.html">&larr; Línea de tiempo</a>
+        <!-- La etiqueta de estación del año se completa sola desde la fecha de la campaña -->
+        <h1>Septiembre 2023<span id="temporada" class="temporada" hidden></span></h1>
+        <p class="subtitulo">Campaña 1 · <span id="nEstaciones">17 estaciones</span> · Proyecto Fondecyt 1262020</p>
+      </div>
+      <!-- Se activa cuando ya cargó el índice de datos -->
+      <button type="button" id="btnDatos" class="boton-principal" disabled>Descargar datos</button>
     </div>
   </header>
+
+  <!-- ====== VENTANA EMERGENTE: DESCARGA DE DATOS ====== -->
+  <dialog id="ventanaDescarga" aria-labelledby="tituloDescarga">
+    <div class="ventana-contenido">
+      <h2 id="tituloDescarga">Descargar datos · Septiembre 2023</h2>
+
+      <div class="grupo-titulo">
+        <h3>Estaciones</h3>
+        <div class="atajos">
+          <button type="button" id="dlTodas">Todas</button>
+          <button type="button" id="dlNinguna">Ninguna</button>
+        </div>
+      </div>
+      <div id="dlEstaciones" class="opciones opciones-estaciones"></div>
+
+      <h3>Variables</h3>
+      <div id="dlVariables" class="opciones opciones-variables"></div>
+
+      <p class="nota-descarga">La profundidad se incluye siempre. Datos sin promediar (bajada), en un archivo Excel.</p>
+      <p id="dlEstado" class="nota-descarga" aria-live="polite"></p>
+
+      <div class="ventana-botones">
+        <button type="button" id="dlCancelar">Cancelar</button>
+        <button type="button" id="dlDescargar" class="boton-principal">Descargar</button>
+      </div>
+    </div>
+  </dialog>
 
   <div class="contenedor">
 
@@ -122,7 +153,8 @@
 
   <!-- La única línea que cambia entre páginas de campaña: qué campaña mostrar (id de datos/indice.json) -->
   <script>const CAMPANA_ID = "1_septiembre_2023";</script>
-  <script src="visor_campana.js?v=3"></script>
+  <script src="visor_campana.js?v=4"></script>
   <script src="seccion_campana.js?v=4"></script>
+  <script src="descarga_campana.js?v=1"></script>
 </body>
 </html>

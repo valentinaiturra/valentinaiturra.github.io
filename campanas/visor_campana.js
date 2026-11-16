@@ -341,6 +341,8 @@ if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly ===
       document.getElementById("nEstaciones").textContent = `${n} estaciones`;
       mostrarTemporada();
       dibujarEstaciones();
+      // Si la página tiene ventana de descarga de datos (descarga_campana.js), se inicia aquí
+      if (typeof iniciarDescarga === "function") iniciarDescarga();
       // Si la página también tiene sección vertical (seccion_campana.js), se inicia aquí
       if (typeof iniciarSeccion === "function") {
         iniciarSeccion().catch(err => {

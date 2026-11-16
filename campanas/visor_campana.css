@@ -59,7 +59,14 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   padding: 20px 16px 22px;
+  /* Título a la izquierda, botón "Descargar datos" en el extremo derecho */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;               /* en pantallas angostas el botón baja */
+  gap: 16px;
 }
+#btnDatos { width: auto; margin-top: 0; padding: 10px 20px; font-size: 0.95rem; }
 .cabecera .subtitulo { margin-bottom: 0; }
 
 /* Etiqueta de estación del año (hemisferio sur), colores Okabe-Ito aptos para daltonismo */
@@ -210,6 +217,59 @@ select:focus-visible, input[type="number"]:focus-visible, button:focus-visible {
   color: var(--blanco);
 }
 .boton-principal:hover { background: #072636; color: var(--blanco); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:disabled:hover { background: var(--blanco); color: var(--acento); }
+.boton-principal:disabled:hover { background: var(--acento); color: var(--blanco); }
+
+/* ====== VENTANA EMERGENTE: DESCARGA DE DATOS ====== */
+#ventanaDescarga {
+  width: min(560px, calc(100% - 32px));
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  color: var(--texto);
+  box-shadow: 0 12px 40px rgba(14, 59, 82, 0.25);
+}
+#ventanaDescarga::backdrop { background: rgba(14, 59, 82, 0.35); }
+.ventana-contenido { padding: 22px 24px 20px; font-family: Arial, Helvetica, sans-serif; font-size: 0.92rem; }
+.ventana-contenido h2 {
+  margin: 0 0 16px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--acento);
+}
+.ventana-contenido h3 {
+  margin: 14px 0 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave);
+}
+.grupo-titulo { display: flex; align-items: center; justify-content: space-between; }
+.atajos { display: flex; gap: 6px; }
+.atajos button { width: auto; padding: 3px 10px; font-size: 0.8rem; }
+
+.opciones { display: grid; gap: 6px; }
+.opciones-estaciones { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.opciones-variables { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.opcion:has(input:checked) { border-color: var(--acento); background: #eef4f6; }
+.opcion input { accent-color: var(--acento); margin: 0; }
+
+.nota-descarga { margin: 12px 0 0; font-size: 0.82rem; color: var(--texto-suave); }
+#dlEstado:empty { display: none; }
+.ventana-botones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.ventana-botones button { width: auto; margin-top: 0; padding: 9px 18px; }
 
 /* Etiqueta permanente con el nombre de cada estación */
 .etiqueta-estacion {
