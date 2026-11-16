@@ -11,15 +11,15 @@ function iniciarDescarga() {
   const cajaEstaciones = document.getElementById("dlEstaciones");
   const cajaVariables = document.getElementById("dlVariables");
 
-  // Una casilla por estación con datos en esta campaña (todas marcadas al inicio)
+  // Una casilla por estación con datos en esta campaña (sin marcar al inicio)
   Object.keys(campana.archivos).sort().forEach(id => {
     cajaEstaciones.insertAdjacentHTML("beforeend",
-      `<label class="opcion"><input type="checkbox" name="estacion" value="${id}" checked> ${id}</label>`);
+      `<label class="opcion"><input type="checkbox" name="estacion" value="${id}"> ${id}</label>`);
   });
-  // Una casilla por variable de la lista del visor
+  // Una casilla por variable de la lista del visor (sin marcar al inicio)
   VARIABLES_MOSTRADAS.forEach(n => {
     cajaVariables.insertAdjacentHTML("beforeend",
-      `<label class="opcion"><input type="checkbox" name="variable" value="${n}" checked> ${etiqueta(n)}</label>`);
+      `<label class="opcion"><input type="checkbox" name="variable" value="${n}"> ${etiqueta(n)}</label>`);
   });
 
   const marcar = (nombre, valor) => {
@@ -60,7 +60,8 @@ async function generarExcel() {
   boton.disabled = true;
 
   const colProf = etiqueta(COLUMNA_PROFUNDIDAD);
-  const encabezados = ["Estación", "Fecha", "Hora", colProf, ...variables.map(etiqueta)];
+  const COL_TIEMPO = "Fecha y hora";
+  const encabezados = ["Estación", COL_TIEMPO, colProf, ...variables.map(etiqueta)];
   const filas = [];
   const resumenEstaciones = [];
 
@@ -71,11 +72,14 @@ async function generarExcel() {
       const archivo = campana.archivos[id];
       const tabla = await cargarTabla(archivo.ruta);   // usa los Excel ya leídos si están en memoria
       const prof = tabla.columnas[COLUMNA_PROFUNDIDAD];
+      // Columna "Time" del Excel original: fecha y hora de cada medición (número de fecha de Excel)
+      const tiempo = tabla.columnas["Time"] || [];
       const fecha = fechaChilena(archivo.fecha);
       let n = 0;
       prof.forEach((d, k) => {
         if (d === null) return;
-        const fila = { "Estación": id, "Fecha": fecha, "Hora": archivo.hora || "", [colProf]: d };
+        const t = tiempo[k];
+        const fila = { "Estación": id, [COL_TIEMPO]: t === null || t === undefined ? "" : t, [colProf]: d };
         variables.forEach(v => {
           const valor = tabla.columnas[v] ? tabla.columnas[v][k] : null;
           fila[etiqueta(v)] = valor === null ? "" : valor;
@@ -92,7 +96,14 @@ async function generarExcel() {
 
     estado.textContent = "Armando el archivo Excel…";
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(filas, { header: encabezados }), "datos");
+    const hojaDatos = XLSX.utils.json_to_sheet(filas, { header: encabezados });
+    // La fecha y hora se guarda como fecha real de Excel, con el mismo formato del archivo original
+    const colT = encabezados.indexOf(COL_TIEMPO);
+    for (let r = 1; r <= filas.length; r++) {
+      const celda = hojaDatos[XLSX.utils.encode_cell({ r, c: colT })];
+      if (celda && celda.t === "n") celda.z = "yyyy-mm-dd hh:mm:ss.000";
+    }
+    XLSX.utils.book_append_sheet(libro, hojaDatos, "datos");
     XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(resumenEstaciones), "estaciones");
     XLSX.writeFile(libro, `CTD_Puyuhuapi_${campana.id}.xlsx`);
 
