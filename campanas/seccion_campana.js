@@ -40,6 +40,54 @@ function escalaColor(variable) {
   return colores.map((c, i) => [i / (colores.length - 1), c]);
 }
 
+// ====== OXÍGENO: paleta "oxy" amarrada a umbrales fijos ======
+// En vez de repartir los colores entre el mínimo y el máximo de los datos, cada color corresponde
+// a un valor real: rojo = bajo (hipoxia), gris = intermedio, amarillo = alto (sobresaturación).
+// Cada lista es [valor, color]; un valor repetido produce un corte nítido de color en ese umbral.
+const ROJO_OSCURO = "#400505", ROJO_CLARO = "#c1272d";
+const GRIS_OSCURO = "#6e6e6d", GRIS_CLARO = "#e0e0df";
+const AMARILLO = "#ebf34b", AMARILLO_OSCURO = "#ddaf19";
+const UMBRALES_OXIGENO = {
+  // Saturación [%]: rojo desde 30 % hacia abajo, amarillo desde 100 % hacia arriba
+  "Dissolved O₂ saturation": [
+    [0, ROJO_OSCURO], [30, ROJO_CLARO],
+    [30, GRIS_OSCURO], [100, GRIS_CLARO],
+    [100, AMARILLO], [150, AMARILLO_OSCURO]
+  ],
+  // Concentración [µmol/L]: rojo bajo 89 (≈ 2 mL/L, umbral de hipoxia), amarillo sobre 296
+  "Dissolved O₂ concentration": [
+    [0, ROJO_OSCURO], [89, ROJO_CLARO],
+    [89, GRIS_OSCURO], [296, GRIS_CLARO],
+    [296, AMARILLO], [450, AMARILLO_OSCURO]
+  ]
+};
+
+// Mezcla dos colores hex: f = 0 → c1, f = 1 → c2
+function mezclarColor(c1, c2, f) {
+  const a = [1, 3, 5].map(i => parseInt(c1.slice(i, i + 2), 16));
+  const b = [1, 3, 5].map(i => parseInt(c2.slice(i, i + 2), 16));
+  return "#" + a.map((v, i) => Math.round(v + (b[i] - v) * f).toString(16).padStart(2, "0")).join("");
+}
+
+// Color de la paleta de umbrales en un valor v (fuera de los extremos se usa el color del extremo)
+function colorEnValor(anclas, v) {
+  if (v <= anclas[0][0]) return anclas[0][1];
+  for (let i = 1; i < anclas.length; i++) {
+    const [v0, c0] = anclas[i - 1], [v1, c1] = anclas[i];
+    if (v <= v1 && v1 > v0) return mezclarColor(c0, c1, (v - v0) / (v1 - v0));
+  }
+  return anclas[anclas.length - 1][1];
+}
+
+// Escala de Plotly (posiciones 0–1) para el rango [zmin, zmax] que se está mostrando
+function escalaUmbrales(anclas, zmin, zmax) {
+  const posicion = v => (v - zmin) / (zmax - zmin);
+  const escala = [[0, colorEnValor(anclas, zmin)]];
+  anclas.forEach(([v, c]) => { if (v > zmin && v < zmax) escala.push([posicion(v), c]); });
+  escala.push([1, colorEnValor(anclas, zmax)]);
+  return escala;
+}
+
 // Sección ya calculada (se reutiliza al cambiar la profundidad, sin recalcular)
 let seccion = null;   // { variable, grilla, estaciones, sinDatos, distancias }
 
@@ -227,13 +275,25 @@ function dibujarSeccion() {
   const ejeArriba = yMin;
   const ejeAbajo = hayRango && hasta !== null && hasta < grilla.profMax ? yMax : grilla.profMax + 5;
 
-  const nombreVar = etiqueta(variable);
+  const nombreVar = etiqueta(variable);                       // con unidad: para la barra de color
+  const nombreSinUnidad = nombreVar.replace(/\s*\[[^\]]*\]\s*$/, "");   // sin unidad: para el título
+
+  // Rango de valores visibles (para amarrar los colores del oxígeno a sus umbrales)
+  let zmin = Infinity, zmax = -Infinity;
+  zRec.forEach(fila => fila.forEach(v => {
+    if (v !== null) { if (v < zmin) zmin = v; if (v > zmax) zmax = v; }
+  }));
+  const anclas = UMBRALES_OXIGENO[variable];
+  const colores = anclas && zmax > zmin
+    ? { colorscale: escalaUmbrales(anclas, zmin, zmax), zmin, zmax, zauto: false }
+    : { colorscale: escalaColor(variable) };
+
   const trazos = [
     // Sección coloreada con líneas de contorno
     {
       type: "contour",
       x: grilla.x, y: yRec, z: zRec,
-      colorscale: escalaColor(variable),
+      ...colores,
       ncontours: 20,
       contours: {
         coloring: "heatmap", showlabels: true,
@@ -282,7 +342,7 @@ function dibujarSeccion() {
 
   Plotly.react("secGrafico", trazos, {
     title: {
-      text: `${nombreVar} · ${campana.nombre}`,
+      text: nombreSinUnidad,
       font: LETRA_TITULO,
       y: 0.98, yanchor: "top"
     },
