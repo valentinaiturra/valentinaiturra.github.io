@@ -98,6 +98,35 @@
       outline-offset: 2px;
     }
 
+    /* ====== RANGO DE PROFUNDIDAD ====== */
+    .controles.rango > div { flex: 1 1 120px; }
+    .controles.rango > .boton { flex: 0 0 auto; align-self: flex-end; }
+
+    input[type="number"] {
+      width: 100%;
+      font-size: 1rem;
+      padding: 7px 10px;
+      border: 1px solid var(--linea);
+      border-radius: 6px;
+      background: var(--blanco);
+      color: var(--texto);
+    }
+    button {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.9rem;
+      padding: 9px 14px;
+      border: 1px solid var(--acento);
+      border-radius: 6px;
+      background: var(--blanco);
+      color: var(--acento);
+      cursor: pointer;
+    }
+    button:hover { background: var(--acento); color: var(--blanco); }
+    input[type="number"]:focus-visible, button:focus-visible {
+      outline: 3px solid #e0a526;
+      outline-offset: 2px;
+    }
+
     #grafico { height: 520px; }
 
     .vacio {
@@ -181,6 +210,21 @@
             <div>
               <label for="selVariable">Variable</label>
               <select id="selVariable"></select>
+            </div>
+          </div>
+
+          <!-- Rango de profundidad: casilla vacía = sin límite por ese lado -->
+          <div class="controles rango">
+            <div>
+              <label for="profDesde">Profundidad desde [m]</label>
+              <input type="number" id="profDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+            </div>
+            <div>
+              <label for="profHasta">hasta [m]</label>
+              <input type="number" id="profHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
+            </div>
+            <div class="boton">
+              <button type="button" id="btnTodo">Todo el perfil</button>
             </div>
           </div>
 
@@ -346,19 +390,41 @@
       dibujarPerfil(tabla, campana, archivo);
     }
 
+    // Lee las casillas de profundidad. Devuelve null en el lado que esté vacío.
+    function leerRango() {
+      const leer = id => {
+        const texto = document.getElementById(id).value.trim();
+        const numero = parseFloat(texto.replace(",", "."));
+        return texto === "" || !isFinite(numero) ? null : numero;
+      };
+      let desde = leer("profDesde"), hasta = leer("profHasta");
+      // Si se escribieron al revés (desde 30, hasta 5), se ordenan solos
+      if (desde !== null && hasta !== null && desde > hasta) [desde, hasta] = [hasta, desde];
+      return { desde, hasta };
+    }
+
     function dibujarPerfil(tabla, campana, archivo) {
       const variable = document.getElementById("selVariable").value;
       const profundidades = tabla.columnas[COLUMNA_PROFUNDIDAD];
       const valores = tabla.columnas[variable];
+      const { desde, hasta } = leerRango();
+      const hayRango = desde !== null || hasta !== null;
 
-      // Solo los pares con valor y profundidad (los datos no se modifican)
+      // Solo los pares con valor y profundidad dentro del rango elegido
+      // (los datos no se modifican: solo se elige qué parte se dibuja)
       const x = [], y = [];
       valores.forEach((v, i) => {
-        if (v !== null && profundidades[i] !== null) { x.push(v); y.push(profundidades[i]); }
+        const p = profundidades[i];
+        if (v === null || p === null) return;
+        if (desde !== null && p < desde) return;
+        if (hasta !== null && p > hasta) return;
+        x.push(v); y.push(p);
       });
 
+      const textoRango = `${desde !== null ? desde : "superficie"} a ${hasta !== null ? hasta + " m" : "fondo"}`;
       const titulo = `Estación ${estacionActual} · ${campana.nombre}`;
-      const nombreArchivo = `perfil_${estacionActual}_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}`;
+      const nombreArchivo = `perfil_${estacionActual}_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}` +
+        (hayRango ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "");
 
       Plotly.react("grafico", [{
         x, y,
@@ -395,20 +461,31 @@
       const resumen = document.getElementById("resumen");
       if (x.length === 0) {
         resumen.textContent = "";
-        document.getElementById("mensaje").textContent = "Esta variable no tiene datos en este archivo.";
+        document.getElementById("mensaje").textContent = hayRango
+          ? `No hay datos de esta variable entre ${textoRango}.`
+          : "Esta variable no tiene datos en este archivo.";
         return;
       }
       const minimo = x.reduce((a, b) => Math.min(a, b));
       const maximo = x.reduce((a, b) => Math.max(a, b));
       const profMax = y.reduce((a, b) => Math.max(a, b));
       resumen.textContent =
-        `${x.length} mediciones · rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)} · profundidad máxima ${profMax.toFixed(1)} m` +
+        `${x.length} mediciones` + (hayRango ? ` entre ${textoRango}` : "") +
+        ` · rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)} · profundidad máxima ${profMax.toFixed(1)} m` +
         (archivo.nota ? ` · Nota del archivo: ${archivo.nota}` : "");
     }
 
     // ====== INICIO ======
     document.getElementById("selCampana").addEventListener("change", actualizarPerfil);
     document.getElementById("selVariable").addEventListener("change", actualizarPerfil);
+    // El perfil se redibuja mientras escribes (el Excel ya está guardado en memoria, no se descarga de nuevo)
+    document.getElementById("profDesde").addEventListener("input", actualizarPerfil);
+    document.getElementById("profHasta").addEventListener("input", actualizarPerfil);
+    document.getElementById("btnTodo").addEventListener("click", () => {
+      document.getElementById("profDesde").value = "";
+      document.getElementById("profHasta").value = "";
+      actualizarPerfil();
+    });
 
     if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly === "undefined") {
       document.getElementById("sinEstacion").textContent =
