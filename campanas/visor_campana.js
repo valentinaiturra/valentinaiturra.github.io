@@ -1,0 +1,273 @@
+// ====== VISOR CTD DE UNA CAMPAÑA ======
+// Programa compartido por las páginas de campanas/. Cada página define antes:
+//   const CAMPANA_ID = "1_septiembre_2023";   (el id de la campaña en datos/indice.json)
+// Es el mismo visor de visor_ctd.html, pero con la campaña fija: solo se eligen estación, variable y profundidad.
+
+// ====== AJUSTES (puedes cambiarlos) ======
+const RAIZ = "../";                                   // las páginas están en campanas/, los datos en la raíz
+const ARCHIVO_INDICE = RAIZ + "datos/indice.json";
+const COLUMNA_PROFUNDIDAD = "Depth";
+const COLUMNAS_EXCLUIDAS = ["Time", COLUMNA_PROFUNDIDAD];   // no aparecen en el menú de variables
+const COLOR_PERFIL = "#1b6ca8";
+
+// Nombres en español con unidades para cada columna del Excel (iguales a visor_ctd.html).
+// "Temperature (2)" es la segunda columna llamada "Temperature" del Excel (sensor de oxígeno).
+const NOMBRES = {
+  "Conductivity": "Conductividad [mS/cm]",
+  "Temperature": "Temperatura [°C]",
+  "Temperature (2)": "Temperatura del sensor de oxígeno [°C]",
+  "Pressure": "Presión [dbar]",
+  "Chlorophyll a": "Clorofila a [µg/L]",
+  "Dissolved O₂ concentration": "Oxígeno disuelto [µmol/L]",
+  "Dissolved O₂ saturation": "Saturación de oxígeno [%]",
+  "Sea pressure": "Presión del mar [dbar]",
+  "Depth": "Profundidad [m]",
+  "Salinity": "Salinidad [PSU]",
+  "Speed of sound": "Velocidad del sonido [m/s]",
+  "Specific conductivity": "Conductividad específica [µS/cm]",
+  "Density anomaly": "Anomalía de densidad [kg/m³]"
+};
+const etiqueta = nombre => NOMBRES[nombre] || nombre;
+
+let indice = null;            // contenido de indice.json
+let campana = null;           // la campaña de esta página
+let estacionActual = null;    // ej. "E05"
+const marcadores = {};        // marcador del mapa por estación
+const cacheTablas = {};       // Excel ya leídos, para no descargarlos de nuevo
+
+// ====== MAPA ======
+const mapa = L.map("mapa");
+
+// Imagen satelital de fondo (Esri World Imagery)
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+  maxZoom: 18,
+  attribution: "Imágenes: Esri"
+}).addTo(mapa);
+L.control.scale({ imperial: false }).addTo(mapa);
+
+// Celeste brillante: resalta sobre el verde del bosque y el azul oscuro del agua (y se distingue del naranjo elegido)
+const estiloNormal = { radius: 7, color: "#ffffff", weight: 2, fillColor: "#19b5ff", fillOpacity: 1 };
+const estiloElegido = { radius: 10, color: "#ffffff", weight: 3, fillColor: "#e0a526", fillOpacity: 1 };
+// Estación sin lance en esta campaña: gris y sin clic
+const estiloSinDatos = { radius: 6, color: "#ffffff", weight: 1, fillColor: "#9aa0a6", fillOpacity: 0.8 };
+
+function dibujarEstaciones() {
+  const limites = [];
+  indice.estaciones.forEach(est => {
+    const tieneDatos = Boolean(campana.archivos[est.id]);
+    const marcador = L.circleMarker([est.lat, est.lon], tieneDatos ? estiloNormal : estiloSinDatos)
+      .addTo(mapa)
+      .bindTooltip(est.id, { permanent: true, direction: "right", offset: [8, 0], className: "etiqueta-estacion" });
+    if (tieneDatos) marcador.on("click", () => elegirEstacion(est.id));
+    marcadores[est.id] = marcador;
+    limites.push([est.lat, est.lon]);
+  });
+  mapa.fitBounds(limites, { padding: [30, 30] });
+}
+
+// ====== LECTURA DEL EXCEL ======
+// Convierte la primera hoja en columnas numéricas.
+// Si hay nombres repetidos (dos "Temperature"), al segundo le agrega " (2)".
+function tablaDesdeExcel(buffer) {
+  const libro = XLSX.read(buffer, { type: "array" });
+  const hoja = libro.Sheets[libro.SheetNames[0]];
+  const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true });
+
+  const vistos = {};
+  const nombres = filas[0].map(c => {
+    const n = String(c === undefined || c === null ? "" : c).trim();
+    vistos[n] = (vistos[n] || 0) + 1;
+    return vistos[n] === 1 ? n : `${n} (${vistos[n]})`;
+  });
+
+  const columnas = {};
+  nombres.forEach((n, i) => {
+    columnas[n] = filas.slice(1).map(fila => {
+      const v = fila[i];
+      return typeof v === "number" && isFinite(v) ? v : null;
+    });
+  });
+  return { nombres, columnas };
+}
+
+async function cargarTabla(ruta) {
+  if (!cacheTablas[ruta]) {
+    const respuesta = await fetch(encodeURI(RAIZ + ruta));
+    if (!respuesta.ok) throw new Error("No se encontró el archivo " + ruta);
+    cacheTablas[ruta] = tablaDesdeExcel(await respuesta.arrayBuffer());
+  }
+  return cacheTablas[ruta];
+}
+
+// ====== PANEL ======
+// Fecha del índice (2023-09-12) en formato chileno (12-09-2023)
+const fechaChilena = f => f ? f.split("-").reverse().join("-") : "";
+
+function elegirEstacion(id) {
+  if (estacionActual) marcadores[estacionActual].setStyle(estiloNormal);
+  estacionActual = id;
+  marcadores[id].setStyle(estiloElegido).bringToFront();
+
+  const est = indice.estaciones.find(e => e.id === id);
+  const archivo = campana.archivos[id];
+  document.getElementById("sinEstacion").hidden = true;
+  document.getElementById("conEstacion").hidden = false;
+  document.getElementById("tituloEstacion").textContent = "Estación " + id;
+  document.getElementById("infoEstacion").innerHTML =
+    `${Math.abs(est.lat).toFixed(4)}° S, ${Math.abs(est.lon).toFixed(4)}° O` +
+    (archivo.fecha ? `<br>Lance: ${fechaChilena(archivo.fecha)}${archivo.hora ? " · " + archivo.hora : ""}` : "");
+
+  actualizarPerfil();
+}
+
+async function actualizarPerfil() {
+  const mensaje = document.getElementById("mensaje");
+  const resumen = document.getElementById("resumen");
+  mensaje.textContent = "";
+  resumen.textContent = "Cargando datos…";
+
+  const archivo = campana.archivos[estacionActual];
+  const estacionPedida = estacionActual;
+
+  let tabla;
+  try {
+    tabla = await cargarTabla(archivo.ruta);
+  } catch (e) {
+    resumen.textContent = "";
+    mensaje.textContent = e.message;
+    return;
+  }
+  // Si mientras cargaba se eligió otra estación, no dibujar esta
+  if (estacionPedida !== estacionActual) return;
+
+  // Menú de variables: columnas con al menos un número, conservando la elección anterior
+  const selVariable = document.getElementById("selVariable");
+  const variablePrevia = selVariable.value || "Temperature";
+  selVariable.innerHTML = "";
+  tabla.nombres
+    .filter(n => n && !COLUMNAS_EXCLUIDAS.includes(n) && tabla.columnas[n].some(v => v !== null))
+    .forEach(n => selVariable.add(new Option(etiqueta(n), n)));
+  if ([...selVariable.options].some(o => o.value === variablePrevia)) selVariable.value = variablePrevia;
+
+  dibujarPerfil(tabla, archivo);
+}
+
+// Lee las casillas de profundidad. Devuelve null en el lado que esté vacío.
+function leerRango() {
+  const leer = id => {
+    const texto = document.getElementById(id).value.trim();
+    const numero = parseFloat(texto.replace(",", "."));
+    return texto === "" || !isFinite(numero) ? null : numero;
+  };
+  let desde = leer("profDesde"), hasta = leer("profHasta");
+  // Si se escribieron al revés (desde 30, hasta 5), se ordenan solos
+  if (desde !== null && hasta !== null && desde > hasta) [desde, hasta] = [hasta, desde];
+  return { desde, hasta };
+}
+
+function dibujarPerfil(tabla, archivo) {
+  const variable = document.getElementById("selVariable").value;
+  const profundidades = tabla.columnas[COLUMNA_PROFUNDIDAD];
+  const valores = tabla.columnas[variable];
+  const { desde, hasta } = leerRango();
+  const hayRango = desde !== null || hasta !== null;
+
+  // Solo los pares con valor y profundidad dentro del rango elegido
+  // (los datos no se modifican: solo se elige qué parte se dibuja)
+  const x = [], y = [];
+  valores.forEach((v, i) => {
+    const p = profundidades[i];
+    if (v === null || p === null) return;
+    if (desde !== null && p < desde) return;
+    if (hasta !== null && p > hasta) return;
+    x.push(v); y.push(p);
+  });
+
+  const textoRango = `${desde !== null ? desde : "superficie"} a ${hasta !== null ? hasta + " m" : "fondo"}`;
+  const titulo = `Estación ${estacionActual} · ${campana.nombre}`;
+  const nombreArchivo = `perfil_${estacionActual}_${campana.id}_${variable.replace(/[^A-Za-z0-9]+/g, "_")}` +
+    (hayRango ? `_${desde !== null ? desde : 0}-${hasta !== null ? hasta : "fondo"}m` : "");
+
+  Plotly.react("grafico", [{
+    x, y,
+    type: "scatter",
+    mode: "lines",
+    line: { color: COLOR_PERFIL, width: 1.5 },
+    hovertemplate: `${etiqueta(variable)}: %{x:.3f}<br>Profundidad: %{y:.2f} m<extra></extra>`
+  }], {
+    // Título pegado arriba para que no choque con el nombre del eje superior
+    title: { text: titulo, font: { family: "Georgia, serif", size: 16 }, y: 0.98, yanchor: "top" },
+    margin: { l: 70, r: 20, t: 110, b: 30 },
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    xaxis: {
+      title: { text: etiqueta(variable) },
+      side: "top",                 // la variable arriba, como en los perfiles oceanográficos
+      gridcolor: "#e6e3db",
+      zeroline: false
+    },
+    yaxis: {
+      title: { text: etiqueta(COLUMNA_PROFUNDIDAD) },
+      autorange: "reversed",       // la profundidad aumenta hacia abajo
+      gridcolor: "#e6e3db",
+      zeroline: false
+    },
+    font: { family: "Arial, Helvetica, sans-serif", color: "#22262b" }
+  }, {
+    responsive: true,
+    displaylogo: false,
+    locale: "es",
+    toImageButtonOptions: { format: "png", filename: nombreArchivo, scale: 3 }
+  });
+
+  const resumen = document.getElementById("resumen");
+  if (x.length === 0) {
+    resumen.textContent = "";
+    document.getElementById("mensaje").textContent = hayRango
+      ? `No hay datos de esta variable entre ${textoRango}.`
+      : "Esta variable no tiene datos en este archivo.";
+    return;
+  }
+  const minimo = x.reduce((a, b) => Math.min(a, b));
+  const maximo = x.reduce((a, b) => Math.max(a, b));
+  const profMax = y.reduce((a, b) => Math.max(a, b));
+  resumen.textContent =
+    `${x.length} mediciones` + (hayRango ? ` entre ${textoRango}` : "") +
+    ` · rango ${minimo.toFixed(3)} a ${maximo.toFixed(3)} · profundidad máxima ${profMax.toFixed(1)} m` +
+    (archivo.nota ? ` · Nota del archivo: ${archivo.nota}` : "");
+}
+
+// ====== INICIO ======
+document.getElementById("selVariable").addEventListener("change", actualizarPerfil);
+// El perfil se redibuja mientras escribes (el Excel ya está guardado en memoria, no se descarga de nuevo)
+document.getElementById("profDesde").addEventListener("input", actualizarPerfil);
+document.getElementById("profHasta").addEventListener("input", actualizarPerfil);
+document.getElementById("btnTodo").addEventListener("click", () => {
+  document.getElementById("profDesde").value = "";
+  document.getElementById("profHasta").value = "";
+  actualizarPerfil();
+});
+
+if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly === "undefined") {
+  document.getElementById("sinEstacion").textContent =
+    "No se pudieron cargar las librerías. Revisa tu conexión a internet.";
+} else {
+  fetch(ARCHIVO_INDICE)
+    .then(r => {
+      if (!r.ok) throw new Error("No se encontró " + ARCHIVO_INDICE);
+      return r.json();
+    })
+    .then(datos => {
+      indice = datos;
+      campana = indice.campanas.find(c => c.id === CAMPANA_ID);
+      if (!campana) throw new Error(`La campaña "${CAMPANA_ID}" no está en el índice`);
+      const n = Object.keys(campana.archivos).length;
+      document.getElementById("nEstaciones").textContent = `${n} estaciones`;
+      dibujarEstaciones();
+    })
+    .catch(e => {
+      document.getElementById("sinEstacion").textContent =
+        e.message + ". Esta página debe abrirse desde GitHub Pages o un servidor local, no con doble clic.";
+    });
+}

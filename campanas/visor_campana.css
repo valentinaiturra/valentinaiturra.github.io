@@ -1,0 +1,169 @@
+/* ====== ESTILO COMPARTIDO DE LAS PÁGINAS DE CAMPAÑA ======
+   Mismo diseño que visor_ctd.html, pero sin menú de campaña. */
+
+:root {
+  --fondo: #f6f4ef;
+  --texto: #22262b;
+  --texto-suave: #5c636b;
+  --acento: #1f5f5b;
+  --linea: #dcd8cd;
+  --blanco: #ffffff;
+  --error: #b3261e;
+  --resalte: #e0a526;
+}
+
+* { box-sizing: border-box; }
+
+/* Asegura que lo marcado como "hidden" quede oculto aunque tenga otro display */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+.contenedor {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+/* ====== ENCABEZADO ====== */
+.volver {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  color: var(--acento);
+  text-decoration: none;
+}
+.volver:hover { text-decoration: underline; }
+
+h1 {
+  margin: 0 0 2px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  line-height: 1.15;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+}
+.subtitulo {
+  margin: 0 0 20px;
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  color: var(--texto-suave);
+}
+
+/* ====== DISTRIBUCIÓN: mapa a la izquierda, perfil a la derecha ====== */
+.principal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.caja {
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 0;
+}
+
+#mapa { height: 640px; border-radius: 6px; }
+
+/* ====== PANEL DEL PERFIL: gráfico a la izquierda, controles en columna a la derecha ====== */
+.zona-perfil {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 16px;
+}
+.panel h2 { margin: 0 0 2px; font-size: 1.4rem; }
+.info {
+  color: var(--texto-suave);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.lateral { font-family: Arial, Helvetica, sans-serif; font-size: 0.9rem; }
+.campo { margin-bottom: 14px; }
+.lateral label { display: block; margin-bottom: 4px; color: var(--texto-suave); }
+
+/* Desde / hasta lado a lado dentro de la columna */
+.rango { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+select, input[type="number"] {
+  width: 100%;
+  font-size: 1rem;
+  padding: 7px 10px;
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  background: var(--blanco);
+  color: var(--texto);
+}
+button {
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  padding: 9px 14px;
+  border: 1px solid var(--acento);
+  border-radius: 6px;
+  background: var(--blanco);
+  color: var(--acento);
+  cursor: pointer;
+}
+button:hover { background: var(--acento); color: var(--blanco); }
+select:focus-visible, input[type="number"]:focus-visible, button:focus-visible {
+  outline: 3px solid var(--resalte);
+  outline-offset: 2px;
+}
+
+#grafico { height: 640px; }   /* misma altura que el mapa: el perfil queda vertical */
+
+.vacio {
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--texto-suave);
+  padding: 24px;
+}
+
+#mensaje { color: var(--error); font-size: 0.9rem; margin-top: 8px; }
+#resumen { color: var(--texto-suave); font-size: 0.85rem; margin-top: 8px; }
+
+/* Etiqueta permanente con el nombre de cada estación */
+.etiqueta-estacion {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;   /* borde oscuro para leerse sobre el satélite */
+  padding: 0;
+}
+.etiqueta-estacion::before { display: none; }
+
+footer {
+  margin-top: 28px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+/* Solo en pantallas angostas (celular): todo en una columna */
+@media (max-width: 700px) {
+  .principal { grid-template-columns: 1fr; }
+  #mapa { height: 420px; }
+  #grafico { height: 520px; }
+  .zona-perfil { grid-template-columns: 1fr; }
+  .lateral { order: -1; }   /* controles arriba del gráfico */
+}
