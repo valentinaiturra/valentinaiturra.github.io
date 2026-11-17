@@ -337,8 +337,9 @@ if (typeof L === "undefined" || typeof XLSX === "undefined" || typeof Plotly ===
       indice = datos;
       campana = indice.campanas.find(c => c.id === CAMPANA_ID);
       if (!campana) throw new Error(`La campaña "${CAMPANA_ID}" no está en el índice`);
-      const n = Object.keys(campana.archivos).length;
-      document.getElementById("nEstaciones").textContent = `${n} estaciones`;
+      // Número de estaciones en el subtítulo (solo si la página tiene ese espacio)
+      const nEstaciones = document.getElementById("nEstaciones");
+      if (nEstaciones) nEstaciones.textContent = `${Object.keys(campana.archivos).length} estaciones`;
       mostrarTemporada();
       dibujarEstaciones();
       // Si la página tiene ventana de descarga de datos (descarga_campana.js), se inicia aquí
