@@ -2,7 +2,7 @@
 Prepara los datos CTD del Fondecyt 1262020 para el visor web (visor_ctd.html).
 
 Qué hace:
-  1. Copia (sin modificar) los Excel CTD_PUYUHUAPI_E##_*.xlsx de las campañas 1 a 8
+  1. Copia (sin modificar) los Excel CTD_PUYUHUAPI_E##_*.xlsx de todas las campañas (1, 2, 3, ...)
      a la carpeta datos/ctd/<campaña>/ del repositorio web.
   2. Copia estaciones_fondecyt_2022.csv a datos/.
   3. Genera datos/indice.json: qué archivo corresponde a cada estación y campaña.
@@ -31,10 +31,17 @@ MESES = {
 
 # CTD_PUYUHUAPI_E02_09.11.2025_09.53.xlsx  → estación 2, fecha 09.11.2025, hora 09.53
 # CTD_PUYUHUAPI_E01_09.11.2025_SOLO_TEMP.xlsx → estación 1, fecha 09.11.2025, sin hora
+# CTD_PUYUHUAPI_E08_M07_30.01.2026_15.07.xlsx → estación 8 (el código extra M07, P01, etc. se ignora)
 PATRON_ARCHIVO = re.compile(
-    r"^CTD_PUYUHUAPI_E(?P<est>\d{2})_(?P<dia>\d{2})\.(?P<mes>\d{2})\.(?P<anio>\d{4})_(?P<resto>.+)\.xlsx$"
+    r"^CTD_PUYUHUAPI_E(?P<est>\d{2})(?:_[A-Z]\d+)?_(?P<dia>\d{2})\.(?P<mes>\d{2})\.(?P<anio>\d{4})_(?P<resto>.+)\.xlsx$"
 )
 PATRON_HORA = re.compile(r"^(?P<h>\d{2})\.(?P<m>\d{2})$")
+
+# Correcciones de nombre: carpeta (en minúscula) → id con el mes real de los lances.
+# La carpeta original en E: no se renombra; solo cambia cómo aparece en la web.
+CORRECCIONES = {
+    "9_febrero_2026": "9_enero_2026",   # los lances fueron del 28 al 30 de enero de 2026
+}
 
 
 def leer_estaciones(ruta_csv):
@@ -49,16 +56,21 @@ def leer_estaciones(ruta_csv):
 
 def main(origen):
     campanas = []
-    for carpeta in sorted(origen.glob("[1-8]_*")):
-        numero, mes_txt, anio = carpeta.name.split("_")
+    # Campañas 1, 2, 3, ... (se omite 0_ESTACION_FIJA). El id se guarda en minúscula
+    # para que todas las campañas tengan el mismo formato (ej. 9_Febrero_2026 → 9_febrero_2026)
+    for carpeta in sorted(origen.glob("[1-9]*_*")):
+        if not carpeta.is_dir() or not carpeta.name.split("_")[0].isdigit():
+            continue
+        id_campana = CORRECCIONES.get(carpeta.name.lower(), carpeta.name.lower())
+        numero, mes_txt, anio = id_campana.split("_")
         campana = {
-            "id": carpeta.name,
+            "id": id_campana,
             "nombre": f"{mes_txt.capitalize()} {anio}",
             "orden": int(numero),
             "archivos": {},
         }
 
-        destino_campana = DESTINO_DATOS / "ctd" / carpeta.name
+        destino_campana = DESTINO_DATOS / "ctd" / id_campana
         destino_campana.mkdir(parents=True, exist_ok=True)
 
         # rglob porque en septiembre 2023 los archivos están en una subcarpeta Data/
@@ -73,13 +85,13 @@ def main(origen):
             shutil.copy2(archivo, destino_campana / archivo.name)  # copia exacta del original
 
             campana["archivos"][id_estacion] = {
-                "ruta": f"datos/ctd/{carpeta.name}/{archivo.name}",
+                "ruta": f"datos/ctd/{id_campana}/{archivo.name}",
                 "fecha": f"{coincidencia['anio']}-{coincidencia['mes']}-{coincidencia['dia']}",
                 "hora": f"{hora['h']}:{hora['m']}" if hora else None,
                 "nota": None if hora else coincidencia["resto"].replace("_", " ").lower(),
             }
 
-        print(f"{carpeta.name}: {len(campana['archivos'])} archivos copiados")
+        print(f"{id_campana}: {len(campana['archivos'])} archivos copiados")
         campanas.append(campana)
 
     shutil.copy2(origen / "estaciones_fondecyt_2022.csv", DESTINO_DATOS / "estaciones_fondecyt_2022.csv")

@@ -308,27 +308,31 @@
       <p class="subtitulo">Proyecto Fondecyt 1262020</p>
     </header>
 
-    <!-- Posiciones (--pos) = meses desde septiembre 2023 / 26 meses totales -->
+    <!-- Posiciones (--pos) = meses desde septiembre 2023 / 28 meses totales (hasta enero 2026).
+         Al agregar una campaña más lejana, recalcular todas: pos = meses desde sep 2023 / meses totales -->
     <nav class="linea-tiempo" aria-label="Línea de tiempo de campañas">
       <div class="eje"></div>
 
-      <!-- Inicio de 2024 (mes 4) y de 2025 (mes 16) -->
-      <div class="division" style="--pos: 0.1538"></div>
-      <div class="division" style="--pos: 0.6154"></div>
+      <!-- Inicio de 2024 (mes 4) y de 2025 (mes 16); el inicio de 2026 (mes 28) coincide con la última campaña -->
+      <div class="division" style="--pos: 0.1429"></div>
+      <div class="division" style="--pos: 0.5714"></div>
 
-      <!-- Años al centro de su tramo -->
-      <div class="anio" style="--pos: 0.0769">2023</div>
-      <div class="anio" style="--pos: 0.3846">2024</div>
-      <div class="anio" style="--pos: 0.8077">2025</div>
+      <!-- Años al centro de su tramo (2026 bajo su única campaña) -->
+      <div class="anio" style="--pos: 0.0714">2023</div>
+      <div class="anio" style="--pos: 0.3571">2024</div>
+      <div class="anio" style="--pos: 0.7857">2025</div>
+      <div class="anio" style="--pos: 1">2026</div>
 
       <a class="campana abajo"  style="--pos: 0;      --i: 0" href="campanas/1_septiembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Septiembre</span> <span class="anio-c">2023</span></span></a>
-      <a class="campana arriba" style="--pos: 0.0769; --i: 1" href="campanas/2_noviembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2023</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.1923; --i: 2" href="campanas/3_febrero_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana arriba" style="--pos: 0.3462; --i: 3" href="campanas/4_junio_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Junio</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.5;    --i: 4" href="campanas/5_octubre_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Octubre</span> <span class="anio-c">2024</span></span></a>
-      <a class="campana arriba" style="--pos: 0.6538; --i: 5" href="campanas/6_febrero_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2025</span></span></a>
-      <a class="campana abajo"  style="--pos: 0.8846; --i: 6" href="campanas/7_agosto_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Agosto</span> <span class="anio-c">2025</span></span></a>
-      <a class="campana arriba" style="--pos: 1;      --i: 7" href="campanas/8_noviembre_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana arriba" style="--pos: 0.0714; --i: 1" href="campanas/2_noviembre_2023.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2023</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.1786; --i: 2" href="campanas/3_febrero_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana arriba" style="--pos: 0.3214; --i: 3" href="campanas/4_junio_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Junio</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.4643; --i: 4" href="campanas/5_octubre_2024.html"><span class="punto"></span><span class="texto"><span class="mes">Octubre</span> <span class="anio-c">2024</span></span></a>
+      <a class="campana arriba" style="--pos: 0.6071; --i: 5" href="campanas/6_febrero_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Febrero</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana abajo"  style="--pos: 0.8214; --i: 6" href="campanas/7_agosto_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Agosto</span> <span class="anio-c">2025</span></span></a>
+      <a class="campana arriba" style="--pos: 0.9286; --i: 7" href="campanas/8_noviembre_2025.html"><span class="punto"></span><span class="texto"><span class="mes">Noviembre</span> <span class="anio-c">2025</span></span></a>
+      <!-- Campaña 9: la carpeta original dice "Febrero 2026", pero los lances fueron del 28 al 30 de enero -->
+      <a class="campana abajo"  style="--pos: 1;      --i: 8" href="campanas/9_enero_2026.html"><span class="punto"></span><span class="texto"><span class="mes">Enero</span> <span class="anio-c">2026</span></span></a>
     </nav>
   </div>
 </body>

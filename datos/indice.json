@@ -958,6 +958,115 @@
      "nota": null
     }
    }
+  },
+  {
+   "id": "9_enero_2026",
+   "nombre": "Enero 2026",
+   "orden": 9,
+   "archivos": {
+    "E01": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E01_30.01.2026_10.04.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "10:04",
+     "nota": null
+    },
+    "E02": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E02_30.01.2026_08.50.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "08:50",
+     "nota": null
+    },
+    "E03": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E03_30.01.2026_12.26.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "12:26",
+     "nota": null
+    },
+    "E04": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E04_30.01.2026_13.04.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "13:04",
+     "nota": null
+    },
+    "E05": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E05_30.01.2026_13.49.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "13:49",
+     "nota": null
+    },
+    "E06": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E06_30.01.2026_14.42.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "14:42",
+     "nota": null
+    },
+    "E07": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E07_28.01.2026_18.12.xlsx",
+     "fecha": "2026-01-28",
+     "hora": "18:12",
+     "nota": null
+    },
+    "E08": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E08_M07_30.01.2026_15.07.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "15:07",
+     "nota": null
+    },
+    "E09": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E09_M04_30.01.2026_12.53.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "12:53",
+     "nota": null
+    },
+    "E10": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E10_M01_30.01.2026_10.58.xlsx",
+     "fecha": "2026-01-30",
+     "hora": "10:58",
+     "nota": null
+    },
+    "E11": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E11_29.01.2026_07.01.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "07:01",
+     "nota": null
+    },
+    "E12": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E12_29.01.2026_08.04.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "08:04",
+     "nota": null
+    },
+    "E13": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E13_29.01.2026_08.58.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "08:58",
+     "nota": null
+    },
+    "E14": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E14_29.01.2026_09.50.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "09:50",
+     "nota": null
+    },
+    "E15": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E15_29.01.2026_14.59.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "14:59",
+     "nota": null
+    },
+    "E16": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E16_29.01.2026_18.15.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "18:15",
+     "nota": null
+    },
+    "E17": {
+     "ruta": "datos/ctd/9_enero_2026/CTD_PUYUHUAPI_E17_P01_29.01.2026_16.48.xlsx",
+     "fecha": "2026-01-29",
+     "hora": "16:48",
+     "nota": null
+    }
+   }
   }
  ]
 }

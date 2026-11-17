@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaña Enero 2026</title>
+  <meta name="description" content="Perfiles CTD de la campaña Enero 2026 en el fiordo Puyuhuapi, proyecto Fondecyt 1262020">
+
+  <!-- Tipografía Fraunces (la misma de la línea de tiempo) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap">
+  <!-- Leaflet: mapa interactivo -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- SheetJS: lee los Excel directamente en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Plotly (versión "cartesian": líneas, puntos y contornos): perfil y sección vertical -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly-cartesian.min.js"></script>
+  <!-- Estilo compartido por todas las páginas de campaña -->
+  <!-- "?v=2": versión de los archivos compartidos. Súbela (v=3, v=4…) cada vez que cambien,
+       así el navegador descarga la versión nueva en vez de usar una copia guardada. -->
+  <link rel="stylesheet" href="visor_campana.css?v=4">
+</head>
+
+<body>
+  <!-- ====== ENCABEZADO ====== -->
+  <header class="cabecera">
+    <div class="cabecera-texto">
+      <div>
+        <a class="volver" href="../linea_tiempo.html">&larr; Línea de tiempo</a>
+        <!-- La etiqueta de estación del año se completa sola desde la fecha de la campaña -->
+        <h1>Enero 2026<span id="temporada" class="temporada" hidden></span></h1>
+        <p class="subtitulo">Proyecto Fondecyt 1262020</p>
+      </div>
+      <!-- Se activa cuando ya cargó el índice de datos -->
+      <button type="button" id="btnDatos" class="boton-principal" disabled>Descargar datos</button>
+    </div>
+  </header>
+
+  <!-- ====== VENTANA EMERGENTE: DESCARGA DE DATOS ====== -->
+  <dialog id="ventanaDescarga" aria-labelledby="tituloDescarga">
+    <div class="ventana-contenido">
+      <h2 id="tituloDescarga">Descargar datos · Enero 2026</h2>
+
+      <div class="grupo-titulo">
+        <h3>Estaciones</h3>
+        <div class="atajos">
+          <button type="button" id="dlTodas">Todas</button>
+          <button type="button" id="dlNinguna">Ninguna</button>
+        </div>
+      </div>
+      <div id="dlEstaciones" class="opciones opciones-estaciones"></div>
+
+      <h3>Variables</h3>
+      <div id="dlVariables" class="opciones opciones-variables"></div>
+
+      <p class="nota-descarga">La profundidad se incluye siempre.</p>
+      <p id="dlEstado" class="nota-descarga" aria-live="polite"></p>
+
+      <div class="ventana-botones">
+        <button type="button" id="dlCancelar">Cancelar</button>
+        <button type="button" id="dlDescargar" class="boton-principal">Descargar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="contenedor">
+
+    <div class="principal">
+      <!-- ====== MAPA ====== -->
+      <div class="caja">
+        <div id="mapa" role="region" aria-label="Mapa de estaciones"></div>
+      </div>
+
+      <!-- ====== PERFIL ====== -->
+      <div class="caja panel">
+        <div id="sinEstacion" class="vacio">Haz clic en una estación del mapa para ver su perfil.</div>
+
+        <div id="conEstacion" class="zona-perfil" hidden>
+          <!-- Gráfico (izquierda) -->
+          <div id="grafico"></div>
+
+          <!-- Columna de controles (derecha) -->
+          <div class="lateral">
+            <h2 id="tituloEstacion"></h2>
+            <p class="info" id="infoEstacion"></p>
+
+            <div class="campo">
+              <label for="selVariable">Variable</label>
+              <select id="selVariable"></select>
+            </div>
+
+            <!-- Rango de profundidad: casilla vacía = sin límite por ese lado -->
+            <div class="campo">
+              <div class="rango">
+                <div>
+                  <label for="profDesde">Desde [m]</label>
+                  <input type="number" id="profDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+                </div>
+                <div>
+                  <label for="profHasta">Hasta [m]</label>
+                  <input type="number" id="profHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
+                </div>
+              </div>
+            </div>
+            <div class="campo">
+              <button type="button" id="btnTodo">Todo el perfil</button>
+            </div>
+
+            <div id="resumen"></div>
+            <div id="mensaje"></div>
+
+            <button type="button" id="btnDescargar" class="boton-principal">Descargar imagen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SECCIÓN VERTICAL ====== -->
+    <div class="caja caja-seccion">
+      <h2>Sección transversal</h2>
+
+      <div id="secGrafico"></div>
+
+      <!-- Controles de la sección: variable y rango de profundidad (casilla vacía = sin límite por ese lado) -->
+      <div class="fila-controles">
+        <div>
+          <label for="secVariable">Variable</label>
+          <select id="secVariable"></select>
+        </div>
+        <div class="corto">
+          <label for="secDesde">Desde [m]</label>
+          <input type="number" id="secDesde" min="0" step="1" inputmode="decimal" placeholder="superficie">
+        </div>
+        <div class="corto">
+          <label for="secHasta">Hasta [m]</label>
+          <input type="number" id="secHasta" min="0" step="1" inputmode="decimal" placeholder="fondo">
+        </div>
+        <div class="boton">
+          <button type="button" id="secTodo">Toda la columna</button>
+        </div>
+        <div class="boton">
+          <button type="button" id="secDescargar" class="boton-principal">Descargar imagen</button>
+        </div>
+      </div>
+
+      <div id="secEstado"></div>
+      <div id="secResumen"></div>
+      <div id="secMensaje"></div>
+    </div>
+  </div>
+
+  <!-- La única línea que cambia entre páginas de campaña: qué campaña mostrar (id de datos/indice.json) -->
+  <script>const CAMPANA_ID = "9_enero_2026";</script>
+  <script src="visor_campana.js?v=5"></script>
+  <script src="seccion_campana.js?v=4"></script>
+  <script src="descarga_campana.js?v=2"></script>
+</body>
+</html>
