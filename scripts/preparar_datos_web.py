@@ -39,9 +39,8 @@ PATRON_HORA = re.compile(r"^(?P<h>\d{2})\.(?P<m>\d{2})$")
 
 # Correcciones de nombre: carpeta (en minúscula) → id con el mes real de los lances.
 # La carpeta original en E: no se renombra; solo cambia cómo aparece en la web.
-CORRECCIONES = {
-    "9_febrero_2026": "9_enero_2026",   # los lances fueron del 28 al 30 de enero de 2026
-}
+# Ejemplo: "9_febrero_2026": "9_enero_2026"   (si se quisiera nombrar por el mes real de los lances)
+CORRECCIONES = {}
 
 
 def leer_estaciones(ruta_csv):
